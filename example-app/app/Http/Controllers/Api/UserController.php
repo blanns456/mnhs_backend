@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\StudentPersonalInfo;
+use App\Models\StudentEducationalInfo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,7 @@ class UserController extends Controller
     public function registerUser(Request $request): Response
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
+            'email' => 'required|email|unique:students_personal_information',
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
@@ -32,6 +33,8 @@ class UserController extends Controller
             'present_address' => 'required',
             'mother_name' => 'required',
             'father_name' => 'required',
+            'school_elem' => 'required',
+            'school_schoolyr' => 'required',
             'mother_occupation' => 'required',
             'father_occupation' => 'required',
             'mother_contactnumber' => 'required',
@@ -79,8 +82,8 @@ class UserController extends Controller
 
             $educational_info = new StudentEducationalInfo();
             $educational_info->stud_id = $student_personal_info->id;
-            $educational_info->school_last_attended_name = $student_personal_info->school_elem;
-            $educational_info->school_last_attended_sy = $student_personal_info->school_schoolyr;
+            $educational_info->school_last_attended_name = $request->school_elem;
+            $educational_info->school_last_attended_sy = $request->school_schoolyr;
             $educational_info->save();
 
             $user = new User();
@@ -94,7 +97,7 @@ class UserController extends Controller
       
             return response(['user' =>  "success"],200);
         }catch(Exception $e){
-           return response(["message" => $e->getMessage()], 201);
+           return response(["message" => $e->getMessage()], 200);
         }
     }
     /**
