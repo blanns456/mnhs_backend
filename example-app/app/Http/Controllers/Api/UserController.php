@@ -9,8 +9,8 @@ use App\Models\StudentEducationalInfo;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
-use Auth;
-use Validator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -21,24 +21,19 @@ class UserController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
-            'civil_status' => 'required',
+            'lrn' => 'required',
             'birthdate' => 'required',
             'birth_place' => 'required',
             'mobile_number' => 'required',
-            'email' => 'required',
-            'birth_place' => 'required',
-            'religion' => 'required',
-            'citizenship' => 'required',
-            'home_address' => 'required',
-            'present_address' => 'required',
-            'mother_name' => 'required',
-            'father_name' => 'required',
+            'gradelevel' => 'required',
+            'program' => 'required',
+            'ip' => 'required',
+            'pantawid' => 'required',
             'school_elem' => 'required',
             'school_schoolyr' => 'required',
-            'mother_occupation' => 'required',
-            'father_occupation' => 'required',
-            'mother_contactnumber' => 'required',
-            'father_contactnumber' => 'required',
+            'home_address' => 'required',
+            'present_address' => 'required',
+            'imagefilename' => 'required',
             'signature' => 'required',
         ]);
         if($validator->fails()){
@@ -59,45 +54,57 @@ class UserController extends Controller
             $student_personal_info->lastname = $request->lastname;
             $student_personal_info->middlename = $request->middlename;
             $student_personal_info->suffix = $request->suffix;
-            $student_personal_info->gender = $request->gender;
-            $student_personal_info->civil_status = $request->civil_status;
+            $student_personal_info->age = $request->age;
             $student_personal_info->birthdate = $request->birthdate;
             $student_personal_info->birth_place = $request->birth_place;
             $student_personal_info->email = $request->email;
             $student_personal_info->mobile_number = $request->mobile_number;
-            $student_personal_info->citizenship = $request->citizenship;
-            $student_personal_info->religion = $request->religion;
+            $student_personal_info->gender = $request->gender;
+            $student_personal_info->ip = $request->ip;
+            $student_personal_info->pantawid = $request->pantawid;
             $student_personal_info->home_address = $request->home_address;
             $student_personal_info->present_address = $request->present_address;
-            $student_personal_info->mother_name = $request->mother_name;
-            $student_personal_info->father_name = $request->father_name;
-            $student_personal_info->mother_occupation = $request->mother_occupation;
-            $student_personal_info->father_occupation = $request->father_occupation;
-            $student_personal_info->mother_contactnumber = $request->mother_contactnumber;
-            $student_personal_info->father_contactnumber = $request->father_contactnumber;
             $student_personal_info->profile_image = $filename;
             $student_personal_info->signature = $request->signature;
+            $student_personal_info->father_lastName = $request->father_lastName;
+            $student_personal_info->father_firstName = $request->father_firstName;
+            $student_personal_info->father_middleName = $request->father_middleName;
+            $student_personal_info->father_number = $request->father_number;
+            $student_personal_info->mother_lastName = $request->mother_lastName;
+            $student_personal_info->mother_firstName = $request->mother_firstName;
+            $student_personal_info->mother_middleName = $request->mother_middleName;
+            $student_personal_info->mother_number = $request->mother_number;
+            $student_personal_info->guardian_lastName = $request->guardian_lastName;
+            $student_personal_info->guardian_firstName = $request->guardian_firstName;
+            $student_personal_info->guardian_middleName = $request->guardian_middleName;
+            $student_personal_info->guardian_number = $request->guardian_number;
             $student_personal_info->save();
 
 
             $educational_info = new StudentEducationalInfo();
             $educational_info->stud_id = $student_personal_info->id;
-            $educational_info->school_last_attended_name = $request->school_elem;
-            $educational_info->school_last_attended_sy = $request->school_schoolyr;
+            $educational_info->LRN = $request->lrn;
+            $educational_info->school_elem = $request->school_elem;
+            $educational_info->elem_schoolyr = $request->school_schoolyr;
+            $educational_info->school_jhs = $request->school_jhs;
+            $educational_info->jhs_schoolyr = $request->jhs_schoolyr;
+            $educational_info->last_schoolyr = $request->last_schoolyr;
+            $educational_info->last_school = $request->last_school;
+            $educational_info->grade_level = $request->grade_level;
+            $educational_info->special_program = $request->program;
+            $educational_info->m_tounge = $request->m_tounge;
             $educational_info->save();
 
             $user = new User();
             $user->email = $request->email;
-            $user->username = $student_personal_info->firstname.$student_personal_info->id;
-            $user->password = Hash::make($student_personal_info->firstname."123");
+            $user->username = $educational_info->LRN.'@caraga.depEd.gov.ph';
+            $user->password = Hash::make('mnhscaraga');
             $user->save();
 
-            
-            
       
             return response(['user' =>  "success"],200);
         }catch(Exception $e){
-           return response(["message" => $e->getMessage()], 200);
+           return response(["message" => $request->all(), ], 200);
         }
     }
     /**
