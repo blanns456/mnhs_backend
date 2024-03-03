@@ -19,11 +19,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 
-Route::post('login',[UserController::class,'loginUser']);
-Route::post('register',[UserController::class,'registerUser']);
+Route::post('login', [UserController::class, 'loginUser']);
+Route::post('register', [UserController::class, 'registerUser']);
+Route::post('registertransfereeJHS', [UserController::class, 'registerTransfereeJHS']);
+Route::post('registershsEnroll', [UserController::class, 'registershsEnroll']);
+Route::post('registertransfereeSHS', [UserController::class, 'registertransfereeSHS']);
 
-
-Route::group(['middleware' => 'auth:sanctum'],function(){
-    Route::get('user',[UserController::class,'userDetails']);
-    Route::get('logout',[UserController::class,'logout']);
+Route::group(['middleware' => 'auth:sanctum'], function () {
+    Route::get('user', [UserController::class, 'userDetails']);
+    Route::get('logout', [UserController::class, 'logout']);
 });
