@@ -11,6 +11,9 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 class UserController extends Controller
 {
@@ -93,6 +96,8 @@ class UserController extends Controller
             $educational_info->grade_level = $request->gradelevel;
             $educational_info->special_program = $request->program;
             $educational_info->m_tounge = $request->m_tounge;
+            $educational_info->status = 'jhs';
+            $educational_info->account_status = 'pending';
             $educational_info->save();
 
             $user = new User();
@@ -100,6 +105,8 @@ class UserController extends Controller
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
+
+            $this->sendRegistrationEmail($request->email, $request->lrn);
 
 
             return response(['user' =>  "success"], 200);
@@ -199,6 +206,7 @@ class UserController extends Controller
             $educational_info->special_program = $request->major;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->status = 'shs';
+            $educational_info->account_status = 'pending';
             $educational_info->save();
 
             $user = new User();
@@ -207,6 +215,7 @@ class UserController extends Controller
             $user->password = Hash::make('mnhscaraga');
             $user->save();
 
+            $this->sendRegistrationEmail($request->email, $request->lrn);
 
             return response(['user' =>  "success"], 200);
         } catch (Exception $e) {
@@ -298,6 +307,7 @@ class UserController extends Controller
             $educational_info->special_program = $request->program;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->status = 'jhs_transferee';
+            $educational_info->account_status = 'pending';
             $educational_info->save();
 
             $user = new User();
@@ -305,7 +315,8 @@ class UserController extends Controller
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
-
+            
+            $this->sendRegistrationEmail($request->email, $request->lrn);
 
             return response(['user' =>  "success"], 200);
         } catch (Exception $e) {
@@ -408,6 +419,7 @@ class UserController extends Controller
             $educational_info->special_program = $request->major;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->status = 'shs_transferee';
+            $educational_info->account_status = 'pending';
             $educational_info->save();
 
             $user = new User();
@@ -416,6 +428,7 @@ class UserController extends Controller
             $user->password = Hash::make('mnhscaraga');
             $user->save();
 
+            $this->sendRegistrationEmail($request->email, $request->lrn);
 
             return response(['user' =>  "success"], 200);
         } catch (Exception $e) {
@@ -476,4 +489,31 @@ class UserController extends Controller
 
         return Response(['data' => 'User Logout successfully.'], 200);
     }
+
+    private function sendRegistrationEmail($email, $lrn)
+    {
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'esterlitoroda08@gmail.com';
+            $mail->Password = 'qqlgymlynqlufqtn';
+            $mail->SMTPSecure = 'ssl';
+            $mail->Port = 465;
+            $mail->isHTML(true);
+
+            $mail->setFrom('esterlitoroda08@gmail.com');
+            $mail->addAddress($email);
+
+            $mail->Subject = 'MNHS Account Information';
+            $mail->Body = "<h4>Account: $lrn@caraga.depEd.gov.ph</h4>
+                <h4>Password: mnhscaraga</h4>";
+
+            $mail->send();
+        } catch (Exception $e) {
+            throw new Exception("Error sending email: " . $e->getMessage());
+        }
+    }
 }
+
