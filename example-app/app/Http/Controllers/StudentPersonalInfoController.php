@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\StudentPersonalInfo;
 use Illuminate\Http\Request;
 
 class StudentPersonalInfoController extends Controller
