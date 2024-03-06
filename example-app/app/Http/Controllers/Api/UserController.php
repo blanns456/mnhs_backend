@@ -315,7 +315,7 @@ class UserController extends Controller
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
-            
+
             $this->sendRegistrationEmail($request->email, $request->lrn);
 
             return response(['user' =>  "success"], 200);
@@ -324,9 +324,9 @@ class UserController extends Controller
         }
     }
 
-    public function registertransfereeSHS(Request $request): Response 
+    public function registertransfereeSHS(Request $request): Response
     {
-         $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'schoolID' => 'required',
             'lastgradecompl' => 'required',
             'lastschool' => 'required',
@@ -469,11 +469,12 @@ class UserController extends Controller
     public function userDetails(): Response
     {
         if (Auth::check()) {
+            $users = Auth::id();
 
-            $user = Auth::user();
+            $user = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE users.id = '$users'");
 
-            return Response(['data' => $user], 200);
-        }
+                return Response(['data' => $user], 200);
+            }
 
         return Response(['data' => 'Unauthorized'], 401);
     }
@@ -516,4 +517,3 @@ class UserController extends Controller
         }
     }
 }
-
