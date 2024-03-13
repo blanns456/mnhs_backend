@@ -27,6 +27,8 @@ Route::post('registertransfereeJHS', [UserController::class, 'registerTransferee
 Route::post('registershsEnroll', [UserController::class, 'registershsEnroll']);
 Route::post('registertransfereeSHS', [UserController::class, 'registertransfereeSHS']);
 
+Route::post('/editstudents', [UserController::class, 'updatestud']);
+
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('user', [UserController::class, 'userDetails']);
     Route::get('logout', [UserController::class, 'logout']);
