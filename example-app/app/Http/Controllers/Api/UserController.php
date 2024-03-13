@@ -473,10 +473,17 @@ class UserController extends Controller
 
             $user = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE users.id = '$users'");
 
-                return Response(['data' => $user], 200);
-            }
+            return Response(['data' => $user], 200);
+        }
 
         return Response(['data' => 'Unauthorized'], 401);
+    }
+
+    public function updatestud(Request $request)
+    {
+
+        $id = $request->id;
+        $get = StudentPersonalInfo::find($id);
     }
 
     /**
