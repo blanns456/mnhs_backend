@@ -24,10 +24,10 @@ class UserController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
-            'lrn' => 'required',
+            'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required',
+            'mobile_number' => 'required|unique:students_personal_information',
             'gradelevel' => 'required',
             'program' => 'required',
             'ip' => 'required',
@@ -50,7 +50,6 @@ class UserController extends Controller
             $extenstion = $file->getClientOriginalExtension();
             $filename = $request->email . time() . '.' . $extenstion;
             $file->move('uploads/userimages/', $filename);
-
 
             $student_personal_info = new StudentPersonalInfo();
             $student_personal_info->firstname = $request->firstname;
@@ -83,7 +82,6 @@ class UserController extends Controller
             $student_personal_info->guardian_number = $request->guardian_number;
             $student_personal_info->save();
 
-
             $educational_info = new StudentEducationalInfo();
             $educational_info->stud_id = $student_personal_info->id;
             $educational_info->LRN = $request->lrn;
@@ -102,6 +100,7 @@ class UserController extends Controller
 
             $user = new User();
             $user->email = $request->email;
+            $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
@@ -125,10 +124,10 @@ class UserController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
-            'lrn' => 'required',
+            'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required',
+            'mobile_number' => 'required|unique:students_personal_information',
             'gradelevel' => 'required',
             'major' => 'required',
             'ip' => 'required',
@@ -211,6 +210,7 @@ class UserController extends Controller
 
             $user = new User();
             $user->email = $request->email;
+            $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
@@ -234,10 +234,10 @@ class UserController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
-            'lrn' => 'required',
+            'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required',
+            'mobile_number' => 'required|unique:students_personal_information',
             'gradelevel' => 'required',
             'program' => 'required',
             'ip' => 'required',
@@ -312,6 +312,7 @@ class UserController extends Controller
 
             $user = new User();
             $user->email = $request->email;
+            $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
@@ -338,10 +339,10 @@ class UserController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
-            'lrn' => 'required',
+            'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required',
+            'mobile_number' => 'required|unique:students_personal_information',
             'gradelevel' => 'required',
             'major' => 'required',
             'ip' => 'required',
@@ -424,6 +425,7 @@ class UserController extends Controller
 
             $user = new User();
             $user->email = $request->email;
+            $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
@@ -466,7 +468,7 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function userDetails(): Response
+    public function userDetails()
     {
         if (Auth::check()) {
             $users = Auth::id();
