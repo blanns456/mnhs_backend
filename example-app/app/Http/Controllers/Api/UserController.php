@@ -481,6 +481,49 @@ class UserController extends Controller
         return Response(['data' => 'Unauthorized'], 401);
     }
 
+    public function showstudent()
+    {
+
+        $enrolled = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'enrolled'");
+
+        return response($enrolled, 201);
+    }
+
+    public function pendingstudent()
+    {
+
+        $pending = DB::select("SELECT students_personal_information.id as studid, CONCAT(firstname, ' ', lastname) as studname, student_education_records.grade_level as gradelevel, student_education_records.special_program as major, student_education_records.account_status as status FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'pending'");
+
+        return response($pending, 201);
+    }
+
+    public function declinedstudent()
+    {
+        $declined = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'declined'");
+
+        return response($declined, 201);
+    }
+
+    public function approvestud(string $id)
+    {
+
+        $x = StudentEducationalInfo::where('stud_id', $id)->first();
+        $x->account_status = 'enrolled';
+        $x->save();
+
+        return response([["message" => "Success"]], 201);
+    }
+
+    public function declinestud(string $id)
+    {
+
+        $x = StudentEducationalInfo::where('stud_id', $id)->first();
+        $x->account_status = 'declined';
+        $x->save();
+
+        return response([["message" => "Success"]], 201);
+    }
+
     public function updatestud(Request $request)
     {
 
