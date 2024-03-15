@@ -129,7 +129,6 @@ class UserController extends Controller
             'birth_place' => 'required',
             'mobile_number' => 'required|unique:students_personal_information',
             'gradelevel' => 'required',
-            'major' => 'required',
             'ip' => 'required',
             'pantawid' => 'required',
             'elementary' => 'required',
@@ -202,7 +201,6 @@ class UserController extends Controller
             $educational_info->semester = $request->semester;
             $educational_info->track = $request->track;
             $educational_info->strand = $request->strand;
-            $educational_info->special_program = $request->major;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->status = 'shs';
             $educational_info->account_status = 'pending';
@@ -344,7 +342,6 @@ class UserController extends Controller
             'birth_place' => 'required',
             'mobile_number' => 'required|unique:students_personal_information',
             'gradelevel' => 'required',
-            'major' => 'required',
             'ip' => 'required',
             'pantawid' => 'required',
             'elementary' => 'required',
@@ -417,7 +414,6 @@ class UserController extends Controller
             $educational_info->semester = $request->semester;
             $educational_info->track = $request->track;
             $educational_info->strand = $request->strand;
-            $educational_info->special_program = $request->major;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->status = 'shs_transferee';
             $educational_info->account_status = 'pending';
@@ -456,10 +452,12 @@ class UserController extends Controller
         if (Auth::attempt($request->all())) {
 
             $user = Auth::user();
+            $studrole = DB::table('users')
+                ->join('roles', 'users.role_id', '=', 'roles.id')->where('users.id', $user->id)->select('users.role_id')->value('roles.role_id');
 
             $success =  $user->createToken('MyApp')->plainTextToken;
 
-            return Response(['token' => $success], 200);
+            return Response(['token' => $success, 'role' => $studrole], 200);
         }
 
         return Response(['message' => 'email or password wrong'], 401);
@@ -550,13 +548,13 @@ class UserController extends Controller
             $mail->isSMTP();
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'esterlitoroda08@gmail.com';
-            $mail->Password = 'qqlgymlynqlufqtn';
+            $mail->Username = 'mnhsystem1@gmail.com';
+            $mail->Password = 'sbmylwmffhjaugmt';
             $mail->SMTPSecure = 'ssl';
             $mail->Port = 465;
             $mail->isHTML(true);
 
-            $mail->setFrom('esterlitoroda08@gmail.com');
+            $mail->setFrom('mnhsystem1@gmail.com');
             $mail->addAddress($email);
 
             $mail->Subject = 'MNHS Account Information';
