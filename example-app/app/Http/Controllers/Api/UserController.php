@@ -550,13 +550,13 @@ class UserController extends Controller
             $mail->isSMTP();
             $mail->Host = 'smtp.gmail.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'esterlitoroda08@gmail.com';
-            $mail->Password = 'qqlgymlynqlufqtn';
+            $mail->Username = 'mnhsystem1@gmail.com';
+            $mail->Password = 'sbmylwmffhjaugmt';
             $mail->SMTPSecure = 'ssl';
             $mail->Port = 465;
             $mail->isHTML(true);
 
-            $mail->setFrom('esterlitoroda08@gmail.com');
+            $mail->setFrom('mnhsystem1@gmail.com');
             $mail->addAddress($email);
 
             $mail->Subject = 'MNHS Account Information';
