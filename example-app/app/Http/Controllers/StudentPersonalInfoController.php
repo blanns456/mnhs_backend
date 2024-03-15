@@ -52,7 +52,7 @@ class StudentPersonalInfoController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        
     }
 
     /**
