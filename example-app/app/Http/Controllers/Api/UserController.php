@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use Carbon\Carbon;
 
 class UserController extends Controller
 {
@@ -103,6 +104,7 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
+            $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
@@ -211,6 +213,7 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
+            $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
@@ -313,6 +316,7 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
+            $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
@@ -424,6 +428,7 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
+            $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
@@ -434,9 +439,6 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * Display a listing of the resource.
-     */
     public function loginUser(Request $request): Response
     {
         $validator = Validator::make($request->all(), [
@@ -463,9 +465,6 @@ class UserController extends Controller
         return Response(['message' => 'email or password wrong'], 401);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function userDetails()
     {
         if (Auth::check()) {
@@ -482,7 +481,7 @@ class UserController extends Controller
     public function showstudent()
     {
 
-        $enrolled = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'enrolled'");
+        $enrolled = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'enrolled' and users.role_id = '2'");
 
         return response($enrolled, 201);
     }
@@ -490,14 +489,14 @@ class UserController extends Controller
     public function pendingstudent()
     {
 
-        $pending = DB::select("SELECT students_personal_information.id as studid, CONCAT(firstname, ' ', lastname) as studname, student_education_records.grade_level as gradelevel, student_education_records.special_program as major, student_education_records.account_status as status FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'pending'");
+        $pending = DB::select("SELECT students_personal_information.id as studid, CONCAT(firstname, ' ', lastname) as studname, student_education_records.grade_level as gradelevel, student_education_records.LRN as LRN, student_education_records.account_status as status FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'pending' and users.role_id = '2'");
 
         return response($pending, 201);
     }
 
     public function declinedstudent()
     {
-        $declined = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'declined'");
+        $declined = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'declined' and users.role_id = '2'");
 
         return response($declined, 201);
     }
@@ -508,6 +507,8 @@ class UserController extends Controller
         $x = StudentEducationalInfo::where('stud_id', $id)->first();
         $x->account_status = 'enrolled';
         $x->save();
+
+        // $this->approvalMail($x->email);
 
         return response([["message" => "Success"]], 201);
     }
@@ -529,9 +530,6 @@ class UserController extends Controller
         $get = StudentPersonalInfo::find($id);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function logout(): Response
     {
         $user = Auth::user();
@@ -561,6 +559,70 @@ class UserController extends Controller
             $mail->Body = "<h4>Account: $lrn@caraga.depEd.gov.ph</h4>
                 <h4>Password: mnhscaraga</h4>";
 
+            $mail->send();
+        } catch (Exception $e) {
+            throw new Exception("Error sending email: " . $e->getMessage());
+        }
+    }
+
+    private function approvalMail($email)
+    {
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'esterlitoroda08@gmail.com';
+            $mail->Password = 'qqlgymlynqlufqtn';
+            $mail->SMTPSecure = 'ssl';
+            $mail->Port = 465;
+            $mail->isHTML(true);
+
+            $mail->setFrom('mnhsystem1@gmail.com');
+            $mail->addAddress('rodajohvincent35@gmail.com');
+
+            $mail->Subject = 'MNHS Online Enrollment System';
+            $mail->Body = '
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Enrollment Confirmation</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        background-color: #f4f4f4;
+                    }
+                    .container {
+                        max-width: 600px;
+                        margin: 20px auto;
+                        background-color: #fff;
+                        padding: 20px;
+                        border-radius: 8px;
+                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                    }
+                    h1 {
+                        color: #333;
+                        text-align: center;
+                    }
+                    p {
+                        color: #555;
+                        font-size: 16px;
+                        line-height: 1.6;
+                    }
+                </style>
+                </head>
+                <body>
+                <div class="container">
+                    <h1>Enrollment Confirmation</h1>
+                    <p>Congratulations! You are successfully enrolled.</p>
+                </div>
+                </body>
+                </html>
+            ';
             $mail->send();
         } catch (Exception $e) {
             throw new Exception("Error sending email: " . $e->getMessage());
