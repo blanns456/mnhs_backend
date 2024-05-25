@@ -37,6 +37,9 @@ Route::get('/declinestudent', [UserController::class, 'declinedstudent']);
 Route::post('/approvestud/{stud_id}', [UserController::class, 'approvestud']);
 Route::post('/declinestud/{stud_id}', [UserController::class, 'declinestud']);
 
+Route::post('sendotp', [UserController::class, 'sendotp']);
+Route::post('verifcode', [UserController::class, 'verifyotp']);
+Route::post('/reset-password', [UserController::class, 'resetPassword']);
 
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
