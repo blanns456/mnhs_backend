@@ -213,7 +213,7 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
-            $user->created_at = Carbon::now();
+            // $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
