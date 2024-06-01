@@ -628,4 +628,169 @@ class UserController extends Controller
             throw new Exception("Error sending email: " . $e->getMessage());
         }
     }
+
+    public function sendotp(Request $request) {
+
+        $email = $request->input('email');
+        $student = StudentPersonalInfo::where('email', $email)->first();
+        $verificationCode = str_pad(mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
+
+        $start = Carbon::now('Asia/Manila');
+        $expire = Carbon::parse($start)->addMinutes(5);
+
+        if ($student) {
+            DB::table('pass_reset')->insert([
+            'user_id' => $student->id,
+            'email' => $email,
+            'otp' => $verificationCode,
+            'start' => $start,
+            'expire' => $expire,
+            ]);
+
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'esterlitoroda08@gmail.com';
+            $mail->Password = 'qqlgymlynqlufqtn';
+            $mail->SMTPSecure = 'ssl';
+            $mail->Port = 465;
+            $mail->isHTML(true);
+
+            $mail->setFrom('jamesbadang16@gmail.com');
+            $mail->addAddress($request->input('email'));
+
+            $mail->Subject = 'OTP Verification Code';
+            $mail->Body = '<html lang="en">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <title>OTP Verification</title>
+              <style>
+                /* Reset CSS */
+                body,
+                h1,
+                p {
+                  margin: 0;
+                  padding: 0;
+                }
+            
+                body {
+                  font-family: Arial, sans-serif;
+                  background-color: #f4f4f4;
+                }
+            
+                .container {
+                  max-width: 500px;
+                  margin: 20px auto;
+                  padding: 20px;
+                  background-color: #ffffff;
+                  border-radius: 10px;
+                  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                }
+            
+                h1 {
+                  color: #333333;
+                  font-size: 24px;
+                  text-align: center;
+                  margin-bottom: 20px;
+                }
+            
+                p {
+                  color: #555555;
+                  line-height: 1.6;
+                  margin-bottom: 20px;
+                  text-align: center;
+                }
+            
+                .otp {
+                  background-color: #f9f9f9;
+                  padding: 10px;
+                  text-align: center;
+                  border-radius: 5px;
+                  font-size: 28px;
+                  margin: 0 auto 20px auto;
+                  max-width: 80%;
+                }
+            
+                .button {
+                  background-color: #0066ff;
+                  color: #ffffff;
+                  text-decoration: none;
+                  padding: 10px 20px;
+                  border-radius: 5px;
+                  display: block;
+                  text-align: center;
+                  margin: 0 auto;
+                  width: fit-content;
+                }
+            
+              </style>
+            </head>
+            
+            <body>
+              <div class="container">
+                <h1>OTP Verification</h1>
+                <p>Good day Student,</p>
+                <p>Here is your OTP CODE please do not share:</p>
+                <div class="otp">' . $verificationCode . '</div> <!-- Insert verification code here -->
+                <p>Please proceed to log in to complete the required updates to your account information.</p>
+            
+                <a href="https://genesys.asc-bislig.com/#/login" target="_blank" class="button">Log in</a>
+              </div>
+            </body>
+            </html>';
+            $mail->send();
+            return response()->json([
+                'message' => 'User found',
+                'data' => $student
+            ], 201);
+
+        } else {
+
+            return response()->json([
+                'message' => 'User not found'
+            ], 201);
+
+        }
+
+    }
+
+    public function verifyotp (Request $request) {
+
+        $otpcode = $request->input('otpcode');
+
+        $check = DB::table('pass_reset')->select('*')
+            ->where('otp', $otpcode)
+            ->first();
+
+        if ($check) {
+            return response(['message' => 'Verified', $check], 201);
+        } else {
+            return response(['message' => 'Not verified'], 201);
+        }
+    }
+
+    public function resetPassword(Request $request)
+    {
+
+        $resetData = DB::table('pass_reset')
+            ->join('users', 'pass_reset.user_id', '=', 'users.id')
+            ->where('otp', $request->checkcode)
+            ->first();
+
+        if (!$resetData) {
+            return response()->json(['message' => 'Invalid Code'], 201);
+        }
+
+        $user = User::find($resetData->user_id);
+        $user->password = Hash::make($request->password);
+
+        if ($user->save()) {
+            return response()->json(['status' => 'Success'], 201);
+        } else {
+            return response()->json(['status' => 'Failed to reset password'], 500);
+        }
+    }
+
 }
