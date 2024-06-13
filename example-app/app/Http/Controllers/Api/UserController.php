@@ -526,8 +526,116 @@ class UserController extends Controller
     public function updatestud(Request $request)
     {
 
-        $id = $request->id;
-        $get = StudentPersonalInfo::find($id);
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'required|string|max:255',
+            'middlename' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'suffix' => 'nullable|string|max:255',
+            'gender' => 'required|string|max:255',
+            'religion' => 'required|string|max:255',
+            'contact_number' => 'required|string',
+            'email' => 'required|email|',
+            'birthdate' => 'required|string|max:255',
+            'birth_place' => 'required|string|max:255',
+            'home_address' => 'required|string|max:255',
+            'present_address' => 'required|string|max:255',
+            'elem_school' => 'required|max:255',
+            'elem_yr' => 'required|string|max:255',
+            'jhs_school' => 'required|string|max:255',
+            'jhs_yr' => 'required|string|max:255',
+            'shs_school' => 'required|string|max:255',
+            'shs_yr' => 'required|string|max:255',
+            'last_school' => 'required|string|max:255',
+            'last_school_year' => 'required|string|max:255',
+            'father_name' => 'nullable|string|max:255',
+            'father_employed' => 'nullable|string|max:255',
+            'father_occupation' => 'nullable|string|max:255',
+            'father_contact' => 'nullable|string|max:255',
+            'mother_name' => 'nullable|string|max:255',
+            'mother_employed' => 'nullable|string|max:255',
+            'mother_occupation' => 'nullable|string|max:255',
+            'mother_contact' => 'nullable|string|max:255',
+            'guardian_name' => 'nullable|string|max:255',
+            'guardian_employed' => 'nullable|string|max:255',
+            'guardian_occupation' => 'nullable|string|max:255',
+            'guardian_contact' => 'nullable|string|max:255',
+            'profile' => 'required',
+            'signature' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return Response(['message' => $validator->errors()], 201);
+        }
+
+        $id = $request->studid;
+        $studpersonal = StudentPersonalInfo::find($id);
+
+        if ($studpersonal) {
+            $studpersonal->firstname = $request->first_name;
+            $studpersonal->lastname = $request->last_name;
+            $studpersonal->middlename = $request->middle_name;
+            $studpersonal->suffix = $request->suffix;
+            $studpersonal->age = $request->age;
+            $studpersonal->birthdate = $request->birthdate;
+            $studpersonal->birth_place = $request->birth_place;
+            $studpersonal->email = $request->email;
+            $studpersonal->mobile_number = $request->mobile_number;
+            $studpersonal->gender = $request->gender;
+            $studpersonal->ip = $request->ip;
+            $studpersonal->pantawid = $request->pantawid;
+            $studpersonal->home_address = $request->home_address;
+            $studpersonal->present_address = $request->present_address;
+            $studpersonal->profile_image = $filename;
+            $studpersonal->signature = $request->signature;
+            $studpersonal->father_lastName = $request->father_lastName;
+            $studpersonal->father_firstName = $request->father_firstName;
+            $studpersonal->father_middleName = $request->father_middleName;
+            $studpersonal->father_number = $request->father_number;
+            $studpersonal->mother_lastName = $request->mother_lastName;
+            $studpersonal->mother_firstName = $request->mother_firstName;
+            $studpersonal->mother_middleName = $request->mother_middleName;
+            $studpersonal->mother_number = $request->mother_number;
+            $studpersonal->guardian_lastName = $request->guardian_lastName;
+            $studpersonal->guardian_firstName = $request->guardian_firstName;
+            $studpersonal->guardian_middleName = $request->guardian_middleName;
+            $studpersonal->guardian_number = $request->guardian_number;
+            $file = $request->file('profile');
+            $extenstion = $file->getClientOriginalExtension();
+            $filename = $request->unique_id . time() . '.' . $extenstion;
+            $file->move('uploads/userimages/', $filename);
+
+            $get->signature = $request->signature;
+            $get->profile = $filename;
+            $get->has_finished = true;
+            $get->update();
+        } else {
+            return response()->json(['message' => 'Student info not found'], 404);
+        }
+
+        $educational_info = StudentEducationalInfo::find($id);
+
+        if ($educational_info) {
+            $educational_info->LRN = $request->lrn;
+            $educational_info->school_elem = $request->elementary;
+            $educational_info->elem_schoolyr = $request->elementary_yr;
+            $educational_info->school_jhs = $request->jhs;
+            $educational_info->jhs_schoolyr = $request->jhs_yr;
+            $educational_info->last_school = $request->lastschool;
+            $educational_info->last_schoolyr = $request->lastschool_yr;
+            $educational_info->grade_level = $request->gradelevel;
+            $educational_info->school_id = $request->schoolID;
+            $educational_info->lastgrade_completed = $request->lastgradecompl;
+            $educational_info->semester = $request->semester;
+            $educational_info->track = $request->track;
+            $educational_info->strand = $request->strand;
+            $educational_info->special_program = $request->special_program;
+            $educational_info->m_tounge = $request->m_tounge;
+            $educational_info->update();
+        } else {
+            return response()->json(['message' => 'Educational info not found'], 404);
+        }
+
+        return response(['message' => 'Update Success'], 201);
     }
 
     public function logout(): Response
