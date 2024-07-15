@@ -104,7 +104,6 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
-            $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
@@ -316,7 +315,6 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
-            $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
@@ -428,7 +426,6 @@ class UserController extends Controller
             $user->role_id = 2;
             $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
-            $user->created_at = Carbon::now();
             $user->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
@@ -470,7 +467,7 @@ class UserController extends Controller
         if (Auth::check()) {
             $users = Auth::id();
 
-            $user = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE users.id = '$users'");
+            $user = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.id = students_personal_information.id JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE users.id = '$users'");
 
             return Response(['data' => $user], 200);
         }
@@ -527,40 +524,30 @@ class UserController extends Controller
     {
 
         $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'middlename' => 'nullable|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'suffix' => 'nullable|string|max:255',
-            'gender' => 'required|string|max:255',
-            'religion' => 'required|string|max:255',
-            'contact_number' => 'required|string',
-            'email' => 'required|email|',
-            'birthdate' => 'required|string|max:255',
-            'birth_place' => 'required|string|max:255',
-            'home_address' => 'required|string|max:255',
-            'present_address' => 'required|string|max:255',
-            'elem_school' => 'required|max:255',
-            'elem_yr' => 'required|string|max:255',
-            'jhs_school' => 'required|string|max:255',
-            'jhs_yr' => 'required|string|max:255',
-            'shs_school' => 'required|string|max:255',
-            'shs_yr' => 'required|string|max:255',
-            'last_school' => 'required|string|max:255',
-            'last_school_year' => 'required|string|max:255',
-            'father_name' => 'nullable|string|max:255',
-            'father_employed' => 'nullable|string|max:255',
-            'father_occupation' => 'nullable|string|max:255',
-            'father_contact' => 'nullable|string|max:255',
-            'mother_name' => 'nullable|string|max:255',
-            'mother_employed' => 'nullable|string|max:255',
-            'mother_occupation' => 'nullable|string|max:255',
-            'mother_contact' => 'nullable|string|max:255',
-            'guardian_name' => 'nullable|string|max:255',
-            'guardian_employed' => 'nullable|string|max:255',
-            'guardian_occupation' => 'nullable|string|max:255',
-            'guardian_contact' => 'nullable|string|max:255',
-            'profile' => 'required',
-            'signature' => 'required|string',
+            'first_name' => 'max:255|nullable',
+            'middle_name' => 'max:255|nullable|string',
+            'last_name' => 'max:255|nullable',
+            'suffix' => 'max:255|nullable|string',
+            'gender' => 'max:255|nullable',
+            'age' => 'max:255|nullable',
+            'lrn' => 'max:255|nullable',
+            'religion' => 'max:255|nullable|string',
+            'contact_number' => 'numeric|max:255',
+            'email' => 'max:255|nullable',
+            'birthdate' => 'nullable|date:Y-m-d',
+            'birth_place' => 'max:255|nullable',
+            'home_address' => 'max:255|nullable',
+            'present_address' => 'max:255|nullable',
+            'elementary' => 'max:255|nullable',
+            'elementary_yr' => 'max:255|nullable',
+            'jhs' => 'max:255|nullable',
+            'jhs_yr' => 'max:255|nullable',
+            'shs_school' => 'max:255|nullable|string',
+            'shs_yr' => 'max:255|nullable',
+            'last_school' => 'max:255|nullable',
+            'last_school_year' => 'max:255|nullable',
+            'profile' => '',
+            'signature' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -569,6 +556,7 @@ class UserController extends Controller
 
         $id = $request->studid;
         $studpersonal = StudentPersonalInfo::find($id);
+        // $studpersonal = DB::table('students_personal_information')->where('id', $id)->first();
 
         if ($studpersonal) {
             $studpersonal->firstname = $request->first_name;
@@ -585,8 +573,6 @@ class UserController extends Controller
             $studpersonal->pantawid = $request->pantawid;
             $studpersonal->home_address = $request->home_address;
             $studpersonal->present_address = $request->present_address;
-            $studpersonal->profile_image = $filename;
-            $studpersonal->signature = $request->signature;
             $studpersonal->father_lastName = $request->father_lastName;
             $studpersonal->father_firstName = $request->father_firstName;
             $studpersonal->father_middleName = $request->father_middleName;
@@ -604,10 +590,9 @@ class UserController extends Controller
             $filename = $request->unique_id . time() . '.' . $extenstion;
             $file->move('uploads/userimages/', $filename);
 
-            $get->signature = $request->signature;
-            $get->profile = $filename;
-            $get->has_finished = true;
-            $get->update();
+            $studpersonal->signature = $request->signature;
+            $studpersonal->profile_image = $filename;
+            $studpersonal->update();
         } else {
             return response()->json(['message' => 'Student info not found'], 404);
         }
@@ -622,7 +607,7 @@ class UserController extends Controller
             $educational_info->jhs_schoolyr = $request->jhs_yr;
             $educational_info->last_school = $request->lastschool;
             $educational_info->last_schoolyr = $request->lastschool_yr;
-            $educational_info->grade_level = $request->gradelevel;
+            $educational_info->grade_level = $request->enrolling_for;
             $educational_info->school_id = $request->schoolID;
             $educational_info->lastgrade_completed = $request->lastgradecompl;
             $educational_info->semester = $request->semester;
