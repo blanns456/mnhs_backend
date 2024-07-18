@@ -559,6 +559,11 @@ class UserController extends Controller
         // $studpersonal = DB::table('students_personal_information')->where('id', $id)->first();
 
         if ($studpersonal) {
+            $file = $request->file('profile');
+            $extenstion = $file->getClientOriginalExtension();
+            $filename = $request->unique_id . time() . '.' . $extenstion;
+            $file->move('uploads/userimages/', $filename);
+
             $studpersonal->firstname = $request->first_name;
             $studpersonal->lastname = $request->last_name;
             $studpersonal->middlename = $request->middle_name;
@@ -585,10 +590,6 @@ class UserController extends Controller
             $studpersonal->guardian_firstName = $request->guardian_firstName;
             $studpersonal->guardian_middleName = $request->guardian_middleName;
             $studpersonal->guardian_number = $request->guardian_number;
-            $file = $request->file('profile');
-            $extenstion = $file->getClientOriginalExtension();
-            $filename = $request->unique_id . time() . '.' . $extenstion;
-            $file->move('uploads/userimages/', $filename);
 
             $studpersonal->signature = $request->signature;
             $studpersonal->profile_image = $filename;
@@ -605,8 +606,8 @@ class UserController extends Controller
             $educational_info->elem_schoolyr = $request->elementary_yr;
             $educational_info->school_jhs = $request->jhs;
             $educational_info->jhs_schoolyr = $request->jhs_yr;
-            $educational_info->last_school = $request->lastschool;
-            $educational_info->last_schoolyr = $request->lastschool_yr;
+            $educational_info->last_school = $request->last_school;
+            $educational_info->last_schoolyr = $request->last_schoolyr;
             $educational_info->grade_level = $request->enrolling_for;
             $educational_info->school_id = $request->schoolID;
             $educational_info->lastgrade_completed = $request->lastgradecompl;
@@ -722,7 +723,8 @@ class UserController extends Controller
         }
     }
 
-    public function sendotp(Request $request) {
+    public function sendotp(Request $request)
+    {
 
         $email = $request->input('email');
         $student = StudentPersonalInfo::where('email', $email)->first();
@@ -733,11 +735,11 @@ class UserController extends Controller
 
         if ($student) {
             DB::table('pass_reset')->insert([
-            'user_id' => $student->id,
-            'email' => $email,
-            'otp' => $verificationCode,
-            'start' => $start,
-            'expire' => $expire,
+                'user_id' => $student->id,
+                'email' => $email,
+                'otp' => $verificationCode,
+                'start' => $start,
+                'expire' => $expire,
             ]);
 
             $mail = new PHPMailer(true);
@@ -838,18 +840,16 @@ class UserController extends Controller
                 'message' => 'User found',
                 'data' => $student
             ], 201);
-
         } else {
 
             return response()->json([
                 'message' => 'User not found'
             ], 201);
-
         }
-
     }
 
-    public function verifyotp (Request $request) {
+    public function verifyotp(Request $request)
+    {
 
         $otpcode = $request->input('otpcode');
 
@@ -885,5 +885,4 @@ class UserController extends Controller
             return response()->json(['status' => 'Failed to reset password'], 500);
         }
     }
-
 }
