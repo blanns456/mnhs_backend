@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\StudentPersonalInfoController;
 use App\Http\Controllers\Api\ResetPassword;
+use App\Http\Controllers\SchoolYearController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +46,11 @@ Route::post('/reset-password', [UserController::class, 'resetPassword']);
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('user', [UserController::class, 'userDetails']);
     Route::get('logout', [UserController::class, 'logout']);
+
+    Route::post('/create-school-year', [SchoolYearController::class, 'store']);
+    Route::get('school-years', [SchoolYearController::class, 'index']);
+    Route::put('update-school-year/{id}', [SchoolYearController::class, 'update']);
+    Route::delete('delete-school-year/{id}', [SchoolYearController::class, 'destroy']);
 
     Route::post('/reset/password', [ResetPassword::class, 'resetStudent']);
 });

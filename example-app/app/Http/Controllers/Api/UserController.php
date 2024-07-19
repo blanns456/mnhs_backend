@@ -38,6 +38,7 @@ class UserController extends Controller
             'home_address' => 'required',
             'present_address' => 'required',
             'imagefilename' => 'required',
+            'form_137' => 'required',
             'signature' => 'required',
         ]);
         if ($validator->fails()) {
@@ -50,6 +51,11 @@ class UserController extends Controller
             $file = $request->file('imagefilename');
             $extenstion = $file->getClientOriginalExtension();
             $filename = $request->email . time() . '.' . $extenstion;
+            $file->move('uploads/userimages/', $filename);
+
+            $file = $request->file('form_137');
+            $extenstion = $file->getClientOriginalExtension();
+            $filename2 = $request->email . time() . '.' . $extenstion;
             $file->move('uploads/userimages/', $filename);
 
             $student_personal_info = new StudentPersonalInfo();
@@ -68,6 +74,7 @@ class UserController extends Controller
             $student_personal_info->home_address = $request->home_address;
             $student_personal_info->present_address = $request->present_address;
             $student_personal_info->profile_image = $filename;
+
             $student_personal_info->signature = $request->signature;
             $student_personal_info->father_lastName = $request->father_lastName;
             $student_personal_info->father_firstName = $request->father_firstName;
@@ -95,6 +102,7 @@ class UserController extends Controller
             $educational_info->grade_level = $request->gradelevel;
             $educational_info->special_program = $request->program;
             $educational_info->m_tounge = $request->m_tounge;
+            $educational_info->form_137 = $filename2;
             $educational_info->status = 'jhs';
             $educational_info->account_status = 'pending';
             $educational_info->save();
@@ -769,12 +777,12 @@ class UserController extends Controller
                   margin: 0;
                   padding: 0;
                 }
-            
+
                 body {
                   font-family: Arial, sans-serif;
                   background-color: #f4f4f4;
                 }
-            
+
                 .container {
                   max-width: 500px;
                   margin: 20px auto;
@@ -783,21 +791,21 @@ class UserController extends Controller
                   border-radius: 10px;
                   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
                 }
-            
+
                 h1 {
                   color: #333333;
                   font-size: 24px;
                   text-align: center;
                   margin-bottom: 20px;
                 }
-            
+
                 p {
                   color: #555555;
                   line-height: 1.6;
                   margin-bottom: 20px;
                   text-align: center;
                 }
-            
+
                 .otp {
                   background-color: #f9f9f9;
                   padding: 10px;
@@ -807,7 +815,7 @@ class UserController extends Controller
                   margin: 0 auto 20px auto;
                   max-width: 80%;
                 }
-            
+
                 .button {
                   background-color: #0066ff;
                   color: #ffffff;
@@ -819,10 +827,10 @@ class UserController extends Controller
                   margin: 0 auto;
                   width: fit-content;
                 }
-            
+
               </style>
             </head>
-            
+
             <body>
               <div class="container">
                 <h1>OTP Verification</h1>
@@ -830,7 +838,7 @@ class UserController extends Controller
                 <p>Here is your OTP CODE please do not share:</p>
                 <div class="otp">' . $verificationCode . '</div> <!-- Insert verification code here -->
                 <p>Please proceed to log in to complete the required updates to your account information.</p>
-            
+
                 <a href="https://genesys.asc-bislig.com/#/login" target="_blank" class="button">Log in</a>
               </div>
             </body>
