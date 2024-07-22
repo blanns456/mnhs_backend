@@ -111,4 +111,30 @@ class SchoolYearController extends Controller
         }
     }
 
+    public function showActiveEnrollment()
+    {
+        $today = Carbon::today()->format('Y-m-d');
+        $activeSchoolYears = SchoolYear::where('enrollment_status', 'Enrollment Available')->get();
+
+        $response = [];
+
+        foreach ($activeSchoolYears as $schoolYear) {
+            if ($schoolYear->enrollment_end == $today) {
+                $schoolYear->enrollment_status = 'Enrollment Done';
+                $schoolYear->save();
+                $response[] = [
+                    'school_year' => $schoolYear->school_year,
+                    'status' => 'Enrollment Done'
+                ];
+            } else {
+                $response[] = [
+                    'school_year' => $schoolYear->school_year,
+                    'status' => 'Enrollment Available'
+                ];
+            }
+        }
+
+        return response()->json($response);
+    }
+
 }
