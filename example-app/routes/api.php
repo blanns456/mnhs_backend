@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\StudentPersonalInfoController;
 use App\Http\Controllers\Api\ResetPassword;
 use App\Http\Controllers\SchoolYearController;
+use App\Http\Controllers\EnrollmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,7 +41,10 @@ Route::post('/declinestud/{stud_id}', [UserController::class, 'declinestud']);
 
 Route::post('sendotp', [UserController::class, 'sendotp']);
 Route::post('verifcode', [UserController::class, 'verifyotp']);
+
+Route::get('active-enrollments', [SchoolYearController::class, 'showActiveEnrollment']);
 Route::post('/reset-password', [UserController::class, 'resetPassword']);
+Route::get('/enrollments', [EnrollmentController::class, 'index']);
 
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
@@ -51,6 +55,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('school-years', [SchoolYearController::class, 'index']);
     Route::put('update-school-year/{id}', [SchoolYearController::class, 'update']);
     Route::delete('delete-school-year/{id}', [SchoolYearController::class, 'destroy']);
+
 
     Route::post('/reset/password', [ResetPassword::class, 'resetStudent']);
 });

@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\StudentPersonalInfo;
-use App\Models\StudentEducationalInfo;
+use App\Models\StudentPersonalInformation;
+use App\Models\StudentEducationRecord;
+use App\Models\SchoolYear;
+use App\Models\StudentEnrollment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
@@ -18,17 +20,29 @@ use Carbon\Carbon;
 
 class UserController extends Controller
 {
+
+    private function getActiveSchoolYears()
+    {
+        return SchoolYear::where('enrollment_status', 'Enrollment Available')->get();
+    }
+
     public function registerUser(Request $request): Response
     {
+        $activeSchoolYears = $this->getActiveSchoolYears();
+
+        if ($activeSchoolYears->isEmpty()) {
+            return Response(['message' => 'No active school years available for enrollment'], 400);
+        }
+
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|unique:students_personal_information',
+            'email' => 'required|email|unique:student_personal_information',
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
             'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required|unique:students_personal_information',
+            'mobile_number' => 'required|unique:student_personal_information',
             'gradelevel' => 'required',
             'program' => 'required',
             'ip' => 'required',
@@ -41,24 +55,32 @@ class UserController extends Controller
             'form_137' => 'required',
             'signature' => 'required',
         ]);
-        if ($validator->fails()) {
 
+        if ($validator->fails()) {
             return Response(['message' => $validator->errors()], 201);
         }
 
         try {
-
+            // Handle file uploads
             $file = $request->file('imagefilename');
-            $extenstion = $file->getClientOriginalExtension();
-            $filename = $request->email . time() . '.' . $extenstion;
+            $extension = $file->getClientOriginalExtension();
+            $filename = $request->email . time() . '.' . $extension;
             $file->move('uploads/userimages/', $filename);
 
             $file = $request->file('form_137');
-            $extenstion = $file->getClientOriginalExtension();
-            $filename2 = $request->email . time() . '.' . $extenstion;
-            $file->move('uploads/userimages/', $filename);
+            $extension = $file->getClientOriginalExtension();
+            $filename2 = $request->email . time() . '.' . $extension;
+            $file->move('uploads/form137/', $filename2);
 
-            $student_personal_info = new StudentPersonalInfo();
+            $user = new User();
+            $user->email = $request->email;
+            $user->role_id = 2;
+            $user->username = $request->lrn . '@caraga.depEd.gov.ph';
+            $user->password = Hash::make('mnhscaraga');
+            $user->save();
+
+            $student_personal_info = new StudentPersonalInformation();
+            $student_personal_info->user_id = $user->id;
             $student_personal_info->firstname = $request->firstname;
             $student_personal_info->lastname = $request->lastname;
             $student_personal_info->middlename = $request->middlename;
@@ -74,7 +96,6 @@ class UserController extends Controller
             $student_personal_info->home_address = $request->home_address;
             $student_personal_info->present_address = $request->present_address;
             $student_personal_info->profile_image = $filename;
-
             $student_personal_info->signature = $request->signature;
             $student_personal_info->father_lastName = $request->father_lastName;
             $student_personal_info->father_firstName = $request->father_firstName;
@@ -90,8 +111,9 @@ class UserController extends Controller
             $student_personal_info->guardian_number = $request->guardian_number;
             $student_personal_info->save();
 
-            $educational_info = new StudentEducationalInfo();
-            $educational_info->stud_id = $student_personal_info->id;
+            // Create StudentEducationRecord
+            $educational_info = new StudentEducationRecord();
+            $educational_info->student_id = $student_personal_info->id;
             $educational_info->LRN = $request->lrn;
             $educational_info->school_elem = $request->school_elem;
             $educational_info->elem_schoolyr = $request->school_schoolyr;
@@ -107,36 +129,39 @@ class UserController extends Controller
             $educational_info->account_status = 'pending';
             $educational_info->save();
 
-            $user = new User();
-            $user->email = $request->email;
-            $user->role_id = 2;
-            $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
-            $user->password = Hash::make('mnhscaraga');
-            $user->save();
+            // Create StudentEnrollment
+            $enrollment = new StudentEnrollment();
+            $enrollment->student_id = $student_personal_info->id;
+            $enrollment->year_level = $request->gradelevel;
+            $enrollment->school_year_id = $activeSchoolYears->first()->id; // Use the first active school year
+            $enrollment->enrollment_date = now();
+            $enrollment->save();
 
+            // Send registration email
             $this->sendRegistrationEmail($request->email, $request->lrn);
 
-
-            return response(['user' =>  "success"], 200);
+            return response(['user' => "success"], 200);
         } catch (Exception $e) {
-            return response(["message" => $request->all(),], 200);
+            return response(["message" => $e->getMessage()], 500);
         }
     }
 
     public function registershsEnroll(Request $request): Response
     {
+        $activeSchoolYears = $this->getActiveSchoolYears();
+
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email|unique:students_personal_information',
+            'email' => 'required|email|unique:student_personal_information',
             'semester' => 'required',
             'track' => 'required',
-            'strand' => 'required',
+            // 'strand' => 'required',
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
             'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required|unique:students_personal_information',
+            'mobile_number' => 'required|unique:student_personal_information',
             'gradelevel' => 'required',
             'ip' => 'required',
             'pantawid' => 'required',
@@ -148,21 +173,38 @@ class UserController extends Controller
             'present_address' => 'required',
             'imagefilename' => 'required',
             'signature' => 'required',
+            'form_137' => 'required',
         ]);
-        if ($validator->fails()) {
 
-            return Response(['message' => $validator->errors()], 201);
+        if ($validator->fails()) {
+            return response(['message' => $validator->errors()], 201);
         }
 
         try {
+            // Create user account
+            $user = new User();
+            $user->email = $request->email;
+            $user->role_id = 2;
+            $user->username = $request->lrn . '@caraga.depEd.gov.ph';
+            $user->password = Hash::make('mnhscaraga');
+            // $user->created_at = Carbon::now();
+            $user->save();
 
-            $file = $request->file('imagefilename');
-            $extenstion = $file->getClientOriginalExtension();
-            $filename = $request->email . time() . '.' . $extenstion;
-            $file->move('uploads/userimages/', $filename);
+            // Handle profile image upload
+            $profileImageFile = $request->file('imagefilename');
+            $profileImageExtension = $profileImageFile->getClientOriginalExtension();
+            $profileImageName = $request->email . time() . '.' . $profileImageExtension;
+            $profileImageFile->move('uploads/userimages/', $profileImageName);
 
+            // Handle form 137 upload
+            $form137File = $request->file('form_137');
+            $form137Extension = $form137File->getClientOriginalExtension();
+            $form137Name = $request->email . '_form137_' . time() . '.' . $form137Extension;
+            $form137File->move('uploads/form137/', $form137Name);
 
-            $student_personal_info = new StudentPersonalInfo();
+            // Save student personal information
+            $student_personal_info = new StudentPersonalInformation();
+            $student_personal_info->user_id = $user->id; // Assign the user_id
             $student_personal_info->firstname = $request->firstname;
             $student_personal_info->lastname = $request->lastname;
             $student_personal_info->middlename = $request->middle_name;
@@ -178,7 +220,7 @@ class UserController extends Controller
             $student_personal_info->pantawid = $request->pantawid;
             $student_personal_info->home_address = $request->home_address;
             $student_personal_info->present_address = $request->present_address;
-            $student_personal_info->profile_image = $filename;
+            $student_personal_info->profile_image = $profileImageName;
             $student_personal_info->signature = $request->signature;
             $student_personal_info->father_lastName = $request->father_lastName;
             $student_personal_info->father_firstName = $request->father_firstName;
@@ -194,9 +236,9 @@ class UserController extends Controller
             $student_personal_info->guardian_number = $request->guardian_number;
             $student_personal_info->save();
 
-
-            $educational_info = new StudentEducationalInfo();
-            $educational_info->stud_id = $student_personal_info->id;
+            // Save student education record
+            $educational_info = new StudentEducationRecord();
+            $educational_info->student_id = $student_personal_info->id;
             $educational_info->LRN = $request->lrn;
             $educational_info->school_elem = $request->elementary;
             $educational_info->elem_schoolyr = $request->elementary_yr;
@@ -209,43 +251,162 @@ class UserController extends Controller
             $educational_info->lastgrade_completed = $request->lastgradecompl;
             $educational_info->semester = $request->semester;
             $educational_info->track = $request->track;
-            $educational_info->strand = $request->strand;
+            $educational_info->form_137 = $form137Name;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->status = 'shs';
             $educational_info->account_status = 'pending';
             $educational_info->save();
 
-            $user = new User();
-            $user->email = $request->email;
-            $user->role_id = 2;
-            $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
-            $user->password = Hash::make('mnhscaraga');
-            // $user->created_at = Carbon::now();
-            $user->save();
+                        // Create StudentEnrollment
+            $enrollment = new StudentEnrollment();
+            $enrollment->student_id = $student_personal_info->id;
+            $enrollment->year_level = $request->gradelevel;
+            $enrollment->school_year_id = $activeSchoolYears->first()->id; // Use the first active school year
+            $enrollment->enrollment_date = now();
+            $enrollment->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
 
             return response(['user' =>  "success"], 200);
         } catch (Exception $e) {
-            return response(["message" => $request->all(),], 200);
+            return response(["message" => $request->all()], 200);
         }
     }
 
+    // public function registerTransfereeJHS(Request $request): Response
+    // {
+    //     $activeSchoolYears = $this->getActiveSchoolYears();
+    //     $validator = Validator::make($request->all(), [
+    //         'schoolID' => 'required',
+    //         'lastgradecompl' => 'required',
+    //         'lastschool' => 'required',
+    //         'lastschool_yr' => 'required',
+    //         'email' => 'required|email|unique:student_personal_information',
+    //         'firstname' => 'required',
+    //         'lastname' => 'required',
+    //         'gender' => 'required',
+    //         'lrn' => 'required|unique:student_education_records',
+    //         'birthdate' => 'required',
+    //         'birth_place' => 'required',
+    //         'mobile_number' => 'required|unique:student_personal_information',
+    //         'gradelevel' => 'required',
+    //         'program' => 'required',
+    //         'ip' => 'required',
+    //         'pantawid' => 'required',
+    //         'school_elem' => 'required',
+    //         'school_schoolyr' => 'required',
+    //         'home_address' => 'required',
+    //         'present_address' => 'required',
+    //         'imagefilename' => 'required',
+    //         'form_137' => 'required',
+    //         'signature' => 'required',
+    //     ]);
+    //     if ($validator->fails()) {
+
+    //         return Response(['message' => $validator->errors()], 201);
+    //     }
+
+    //     try {
+
+    //         $profileImageFile = $request->file('imagefilename');
+    //         $profileImageExtension = $profileImageFile->getClientOriginalExtension();
+    //         $profileImageName = $request->email . time() . '.' . $profileImageExtension;
+    //         $profileImageFile->move('uploads/userimages/', $profileImageName);
+
+    //         // Handle form 137 upload
+    //         $form137File = $request->file('form_137');
+    //         $form137Extension = $form137File->getClientOriginalExtension();
+    //         $form137Name = $request->email . '_form137_' . time() . '.' . $form137Extension;
+    //         $form137File->move('uploads/form137/', $form137Name);
+
+    //         $user = new User();
+    //         $user->email = $request->email;
+    //         $user->role_id = 2;
+    //         $user->username = $request->lrn . '@caraga.depEd.gov.ph';
+    //         $user->password = Hash::make('mnhscaraga');
+    //         $user->save();
+
+    //         $student_personal_info = new StudentPersonalInformation();
+    //         $student_personal_info->user_id = $user->id;
+    //         $student_personal_info->firstname = $request->firstname;
+    //         $student_personal_info->firstname = $request->firstname;
+    //         $student_personal_info->lastname = $request->lastname;
+    //         $student_personal_info->middlename = $request->middlename;
+    //         $student_personal_info->suffix = $request->suffix;
+    //         $student_personal_info->age = $request->age;
+    //         $student_personal_info->birthdate = $request->birthdate;
+    //         $student_personal_info->birth_place = $request->birth_place;
+    //         $student_personal_info->email = $request->email;
+    //         $student_personal_info->mobile_number = $request->mobile_number;
+    //         $student_personal_info->gender = $request->gender;
+    //         $student_personal_info->ip = $request->ip;
+    //         $student_personal_info->pantawid = $request->pantawid;
+    //         $student_personal_info->home_address = $request->home_address;
+    //         $student_personal_info->present_address = $request->present_address;
+    //         $student_personal_info->profile_image = $profileImageName;
+    //         $student_personal_info->signature = $request->signature;
+    //         $student_personal_info->father_lastName = $request->father_lastName;
+    //         $student_personal_info->father_firstName = $request->father_firstName;
+    //         $student_personal_info->father_middleName = $request->father_middleName;
+    //         $student_personal_info->father_number = $request->father_number;
+    //         $student_personal_info->mother_lastName = $request->mother_lastName;
+    //         $student_personal_info->mother_firstName = $request->mother_firstName;
+    //         $student_personal_info->mother_middleName = $request->mother_middleName;
+    //         $student_personal_info->mother_number = $request->mother_number;
+    //         $student_personal_info->guardian_lastName = $request->guardian_lastName;
+    //         $student_personal_info->guardian_firstName = $request->guardian_firstName;
+    //         $student_personal_info->guardian_middleName = $request->guardian_middleName;
+    //         $student_personal_info->guardian_number = $request->guardian_number;
+    //         $student_personal_info->save();
+
+    //         $educational_info = new StudentEducationRecord();
+    //         $educational_info->student_id = $student_personal_info->id;
+    //         $educational_info->LRN = $request->lrn;
+    //         $educational_info->school_elem = $request->school_elem;
+    //         $educational_info->form_137 = $form137Name;
+    //         $educational_info->elem_schoolyr = $request->school_schoolyr;
+    //         $educational_info->last_school = $request->lastschool;
+    //         $educational_info->last_schoolyr = $request->lastschool_yr;
+    //         $educational_info->grade_level = $request->gradelevel;
+    //         $educational_info->school_id = $request->schoolID;
+    //         $educational_info->lastgrade_completed = $request->lastgradecompl;
+    //         $educational_info->special_program = $request->program;
+    //         $educational_info->m_tounge = $request->m_tounge;
+    //         $educational_info->status = 'jhs_transferee';
+    //         $educational_info->account_status = 'pending';
+    //         $educational_info->save();
+
+    //         $enrollment = new StudentEnrollment();
+    //         $enrollment->student_id = $student_personal_info->id;
+    //         $enrollment->year_level = $request->gradelevel;
+    //         $enrollment->school_year_id = $activeSchoolYears->first()->id;
+    //         $enrollment->enrollment_date = now();
+    //         $enrollment->save();
+
+    //         $this->sendRegistrationEmail($request->email, $request->lrn);
+
+    //         return response(['user' =>  "success"], 200);
+    //     } catch (Exception $e) {
+    //         return response(["message" => $request->all(),], 200);
+    //     }
+    // }
     public function registerTransfereeJHS(Request $request): Response
     {
+        $activeSchoolYears = $this->getActiveSchoolYears();
+
         $validator = Validator::make($request->all(), [
             'schoolID' => 'required',
             'lastgradecompl' => 'required',
             'lastschool' => 'required',
             'lastschool_yr' => 'required',
-            'email' => 'required|email|unique:students_personal_information',
+            'email' => 'required|email|unique:student_personal_information',
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
             'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required|unique:students_personal_information',
+            'mobile_number' => 'required|unique:student_personal_information',
             'gradelevel' => 'required',
             'program' => 'required',
             'ip' => 'required',
@@ -255,102 +416,122 @@ class UserController extends Controller
             'home_address' => 'required',
             'present_address' => 'required',
             'imagefilename' => 'required',
+            'form_137' => 'required',
             'signature' => 'required',
         ]);
-        if ($validator->fails()) {
 
-            return Response(['message' => $validator->errors()], 201);
+        if ($validator->fails()) {
+            return response(['message' => $validator->errors()], 201);
         }
 
         try {
+            // Handle profile image upload
+            $profileImageFile = $request->file('imagefilename');
+            $profileImageExtension = $profileImageFile->getClientOriginalExtension();
+            $profileImageName = $request->email . time() . '.' . $profileImageExtension;
+            $profileImageFile->move('uploads/userimages/', $profileImageName);
 
-            $file = $request->file('imagefilename');
-            $extenstion = $file->getClientOriginalExtension();
-            $filename = $request->email . time() . '.' . $extenstion;
-            $file->move('uploads/userimages/', $filename);
+            // Handle form 137 upload
+            $form137File = $request->file('form_137');
+            $form137Extension = $form137File->getClientOriginalExtension();
+            $form137Name = $request->email . '_form137_' . time() . '.' . $form137Extension;
+            $form137File->move('uploads/form137/', $form137Name);
 
-
-            $student_personal_info = new StudentPersonalInfo();
-            $student_personal_info->firstname = $request->firstname;
-            $student_personal_info->lastname = $request->lastname;
-            $student_personal_info->middlename = $request->middlename;
-            $student_personal_info->suffix = $request->suffix;
-            $student_personal_info->age = $request->age;
-            $student_personal_info->birthdate = $request->birthdate;
-            $student_personal_info->birth_place = $request->birth_place;
-            $student_personal_info->email = $request->email;
-            $student_personal_info->mobile_number = $request->mobile_number;
-            $student_personal_info->gender = $request->gender;
-            $student_personal_info->ip = $request->ip;
-            $student_personal_info->pantawid = $request->pantawid;
-            $student_personal_info->home_address = $request->home_address;
-            $student_personal_info->present_address = $request->present_address;
-            $student_personal_info->profile_image = $filename;
-            $student_personal_info->signature = $request->signature;
-            $student_personal_info->father_lastName = $request->father_lastName;
-            $student_personal_info->father_firstName = $request->father_firstName;
-            $student_personal_info->father_middleName = $request->father_middleName;
-            $student_personal_info->father_number = $request->father_number;
-            $student_personal_info->mother_lastName = $request->mother_lastName;
-            $student_personal_info->mother_firstName = $request->mother_firstName;
-            $student_personal_info->mother_middleName = $request->mother_middleName;
-            $student_personal_info->mother_number = $request->mother_number;
-            $student_personal_info->guardian_lastName = $request->guardian_lastName;
-            $student_personal_info->guardian_firstName = $request->guardian_firstName;
-            $student_personal_info->guardian_middleName = $request->guardian_middleName;
-            $student_personal_info->guardian_number = $request->guardian_number;
-            $student_personal_info->save();
-
-
-            $educational_info = new StudentEducationalInfo();
-            $educational_info->stud_id = $student_personal_info->id;
-            $educational_info->LRN = $request->lrn;
-            $educational_info->school_elem = $request->school_elem;
-            $educational_info->elem_schoolyr = $request->school_schoolyr;
-            $educational_info->last_school = $request->lastschool;
-            $educational_info->last_schoolyr = $request->lastschool_yr;
-            $educational_info->grade_level = $request->gradelevel;
-            $educational_info->school_id = $request->schoolID;
-            $educational_info->lastgrade_completed = $request->lastgradecompl;
-            $educational_info->special_program = $request->program;
-            $educational_info->m_tounge = $request->m_tounge;
-            $educational_info->status = 'jhs_transferee';
-            $educational_info->account_status = 'pending';
-            $educational_info->save();
-
+            // Create user
             $user = new User();
             $user->email = $request->email;
             $user->role_id = 2;
-            $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
+            $user->username = $request->lrn . '@caraga.depEd.gov.ph';
             $user->password = Hash::make('mnhscaraga');
             $user->save();
 
+            // Create student personal information
+            $studentPersonalInfo = new StudentPersonalInformation();
+            $studentPersonalInfo->user_id = $user->id;
+            $studentPersonalInfo->firstname = $request->firstname;
+            $studentPersonalInfo->lastname = $request->lastname;
+            $studentPersonalInfo->middlename = $request->middlename;
+            $studentPersonalInfo->suffix = $request->suffix;
+            $studentPersonalInfo->age = $request->age;
+            $studentPersonalInfo->birthdate = $request->birthdate;
+            $studentPersonalInfo->birth_place = $request->birth_place;
+            $studentPersonalInfo->email = $request->email;
+            $studentPersonalInfo->mobile_number = $request->mobile_number;
+            $studentPersonalInfo->gender = $request->gender;
+            $studentPersonalInfo->ip = $request->ip;
+            $studentPersonalInfo->pantawid = $request->pantawid;
+            $studentPersonalInfo->home_address = $request->home_address;
+            $studentPersonalInfo->present_address = $request->present_address;
+            $studentPersonalInfo->profile_image = $profileImageName;
+            $studentPersonalInfo->signature = $request->signature;
+            $studentPersonalInfo->father_lastName = $request->father_lastName;
+            $studentPersonalInfo->father_firstName = $request->father_firstName;
+            $studentPersonalInfo->father_middleName = $request->father_middleName;
+            $studentPersonalInfo->father_number = $request->father_number;
+            $studentPersonalInfo->mother_lastName = $request->mother_lastName;
+            $studentPersonalInfo->mother_firstName = $request->mother_firstName;
+            $studentPersonalInfo->mother_middleName = $request->mother_middleName;
+            $studentPersonalInfo->mother_number = $request->mother_number;
+            $studentPersonalInfo->guardian_lastName = $request->guardian_lastName;
+            $studentPersonalInfo->guardian_firstName = $request->guardian_firstName;
+            $studentPersonalInfo->guardian_middleName = $request->guardian_middleName;
+            $studentPersonalInfo->guardian_number = $request->guardian_number;
+            $studentPersonalInfo->save();
+
+            // Create student education record
+            $educationRecord = new StudentEducationRecord();
+            $educationRecord->student_id = $studentPersonalInfo->id;
+            $educationRecord->LRN = $request->lrn;
+            $educationRecord->school_elem = $request->school_elem;
+            $educationRecord->form_137 = $form137Name;
+            $educationRecord->elem_schoolyr = $request->school_schoolyr;
+            $educationRecord->last_school = $request->lastschool;
+            $educationRecord->last_schoolyr = $request->lastschool_yr;
+            $educationRecord->grade_level = $request->gradelevel;
+            $educationRecord->school_id = $request->schoolID;
+            $educationRecord->lastgrade_completed = $request->lastgradecompl;
+            $educationRecord->special_program = $request->program;
+            $educationRecord->m_tounge = $request->m_tounge;
+            $educationRecord->status = 'jhs_transferee';
+            $educationRecord->account_status = 'pending';
+            $educationRecord->save();
+
+            // Enroll student
+            $enrollment = new StudentEnrollment();
+            $enrollment->student_id = $studentPersonalInfo->id;
+            $enrollment->year_level = $request->gradelevel;
+            $enrollment->school_year_id = $activeSchoolYears->first()->id;
+            $enrollment->enrollment_date = now();
+            $enrollment->save();
+
+            // Send registration email
             $this->sendRegistrationEmail($request->email, $request->lrn);
 
-            return response(['user' =>  "success"], 200);
+            return response(['user' => 'success'], 200);
         } catch (Exception $e) {
-            return response(["message" => $request->all(),], 200);
+            return response(['message' => $request->all()], 200);
         }
     }
 
     public function registertransfereeSHS(Request $request): Response
     {
+        $activeSchoolYears = $this->getActiveSchoolYears();
         $validator = Validator::make($request->all(), [
             'schoolID' => 'required',
             'lastgradecompl' => 'required',
             'lastschool' => 'required',
             'lastschool_yr' => 'required',
-            'email' => 'required|email|unique:students_personal_information',
+            'email' => 'required|email|unique:student_personal_information',
             'semester' => 'required',
             'track' => 'required',
-            'strand' => 'required',
+            // 'strand' => 'required',
             'firstname' => 'required',
             'lastname' => 'required',
             'gender' => 'required',
             'lrn' => 'required|unique:student_education_records',
             'birthdate' => 'required',
             'birth_place' => 'required',
-            'mobile_number' => 'required|unique:students_personal_information',
+            'mobile_number' => 'required|unique:student_personal_information',
             'gradelevel' => 'required',
             'ip' => 'required',
             'pantawid' => 'required',
@@ -361,6 +542,7 @@ class UserController extends Controller
             'home_address' => 'required',
             'present_address' => 'required',
             'imagefilename' => 'required',
+            'form_137' => 'required',
             'signature' => 'required',
         ]);
         if ($validator->fails()) {
@@ -370,13 +552,26 @@ class UserController extends Controller
 
         try {
 
-            $file = $request->file('imagefilename');
-            $extenstion = $file->getClientOriginalExtension();
-            $filename = $request->email . time() . '.' . $extenstion;
-            $file->move('uploads/userimages/', $filename);
+            $profileImageFile = $request->file('imagefilename');
+            $profileImageExtension = $profileImageFile->getClientOriginalExtension();
+            $profileImageName = $request->email . time() . '.' . $profileImageExtension;
+            $profileImageFile->move('uploads/userimages/', $profileImageName);
 
+            // Handle form 137 upload
+            $form137File = $request->file('form_137');
+            $form137Extension = $form137File->getClientOriginalExtension();
+            $form137Name = $request->email . '_form137_' . time() . '.' . $form137Extension;
+            $form137File->move('uploads/form137/', $form137Name);
 
-            $student_personal_info = new StudentPersonalInfo();
+            $user = new User();
+            $user->email = $request->email;
+            $user->role_id = 2;
+            $user->username = $request->lrn . '@caraga.depEd.gov.ph';
+            $user->password = Hash::make('mnhscaraga');
+            $user->save();
+
+            $student_personal_info = new StudentPersonalInformation();
+            $student_personal_info->user_id = $user->id;
             $student_personal_info->firstname = $request->firstname;
             $student_personal_info->lastname = $request->lastname;
             $student_personal_info->middlename = $request->middle_name;
@@ -392,7 +587,7 @@ class UserController extends Controller
             $student_personal_info->pantawid = $request->pantawid;
             $student_personal_info->home_address = $request->home_address;
             $student_personal_info->present_address = $request->present_address;
-            $student_personal_info->profile_image = $filename;
+            $student_personal_info->profile_image = $profileImageName;
             $student_personal_info->signature = $request->signature;
             $student_personal_info->father_lastName = $request->father_lastName;
             $student_personal_info->father_firstName = $request->father_firstName;
@@ -409,8 +604,8 @@ class UserController extends Controller
             $student_personal_info->save();
 
 
-            $educational_info = new StudentEducationalInfo();
-            $educational_info->stud_id = $student_personal_info->id;
+            $educational_info = new StudentEducationRecord();
+            $educational_info->student_id = $student_personal_info->id;
             $educational_info->LRN = $request->lrn;
             $educational_info->school_elem = $request->elementary;
             $educational_info->elem_schoolyr = $request->elementary_yr;
@@ -423,18 +618,18 @@ class UserController extends Controller
             $educational_info->lastgrade_completed = $request->lastgradecompl;
             $educational_info->semester = $request->semester;
             $educational_info->track = $request->track;
-            $educational_info->strand = $request->strand;
+            $educational_info->form_137 = $form137Name;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->status = 'shs_transferee';
             $educational_info->account_status = 'pending';
             $educational_info->save();
 
-            $user = new User();
-            $user->email = $request->email;
-            $user->role_id = 2;
-            $user->username = $educational_info->LRN . '@caraga.depEd.gov.ph';
-            $user->password = Hash::make('mnhscaraga');
-            $user->save();
+            $enrollment = new StudentEnrollment();
+            $enrollment->student_id = $student_personal_info->id;
+            $enrollment->year_level = $request->gradelevel;
+            $enrollment->school_year_id = $activeSchoolYears->first()->id;
+            $enrollment->enrollment_date = now();
+            $enrollment->save();
 
             $this->sendRegistrationEmail($request->email, $request->lrn);
 
@@ -475,7 +670,7 @@ class UserController extends Controller
         if (Auth::check()) {
             $users = Auth::id();
 
-            $user = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.id = students_personal_information.id JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE users.id = '$users'");
+            $user = DB::select("SELECT * FROM `users` JOIN student_personal_information ON users.id = student_personal_information.user_id JOIN student_education_records ON student_personal_information.id = student_education_records.student_id WHERE users.id = '$users'");
 
             return Response(['data' => $user], 200);
         }
@@ -486,7 +681,7 @@ class UserController extends Controller
     public function showstudent()
     {
 
-        $enrolled = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'enrolled' and users.role_id = '2'");
+        $enrolled = DB::select("SELECT * FROM `users` JOIN student_personal_information ON users.id = student_personal_information.user_id JOIN student_education_records ON student_personal_information.id = student_education_records.student_id WHERE student_education_records.account_status = 'enrolled' and users.role_id = '2'");
 
         return response($enrolled, 201);
     }
@@ -494,14 +689,14 @@ class UserController extends Controller
     public function pendingstudent()
     {
 
-        $pending = DB::select("SELECT students_personal_information.id as studid, CONCAT(firstname, ' ', lastname) as studname, student_education_records.grade_level as gradelevel, student_education_records.LRN as LRN, student_education_records.account_status as status FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'pending' and users.role_id = '2'");
+        $pending = DB::select("SELECT student_personal_information.id as studid, CONCAT(firstname, ' ', lastname) as studname, student_education_records.grade_level as gradelevel, student_education_records.LRN as LRN, student_education_records.account_status as status FROM `users` JOIN student_personal_information ON users.email = student_personal_information.email JOIN student_education_records ON student_personal_information.id = student_education_records.student_id WHERE student_education_records.account_status = 'pending' and users.role_id = '2'");
 
         return response($pending, 201);
     }
 
     public function declinedstudent()
     {
-        $declined = DB::select("SELECT * FROM `users` JOIN students_personal_information ON users.email = students_personal_information.email JOIN student_education_records ON students_personal_information.id = student_education_records.stud_id WHERE student_education_records.account_status = 'declined' and users.role_id = '2'");
+        $declined = DB::select("SELECT * FROM `users` JOIN student_personal_information ON users.email = student_personal_information.email JOIN student_education_records ON student_personal_information.id = student_education_records.student_id WHERE student_education_records.account_status = 'declined' and users.role_id = '2'");
 
         return response($declined, 201);
     }
@@ -509,7 +704,7 @@ class UserController extends Controller
     public function approvestud(string $id)
     {
 
-        $x = StudentEducationalInfo::where('stud_id', $id)->first();
+        $x = StudentEducationRecord::where('student_id', $id)->first();
         $x->account_status = 'enrolled';
         $x->save();
 
@@ -521,7 +716,7 @@ class UserController extends Controller
     public function declinestud(string $id)
     {
 
-        $x = StudentEducationalInfo::where('stud_id', $id)->first();
+        $x = StudentEducationRecord::where('student_id', $id)->first();
         $x->account_status = 'declined';
         $x->save();
 
@@ -530,6 +725,7 @@ class UserController extends Controller
 
     public function updatestud(Request $request)
     {
+        // dd($request);
 
         $validator = Validator::make($request->all(), [
             'first_name' => 'max:255|nullable',
@@ -541,7 +737,7 @@ class UserController extends Controller
             'lrn' => 'max:255|nullable',
             'religion' => 'max:255|nullable|string',
             'contact_number' => 'numeric|max:255',
-            'email' => 'max:255|nullable',
+            // 'email' => 'max:255|nullable',
             'birthdate' => 'nullable|date:Y-m-d',
             'birth_place' => 'max:255|nullable',
             'home_address' => 'max:255|nullable',
@@ -554,8 +750,8 @@ class UserController extends Controller
             'shs_yr' => 'max:255|nullable',
             'last_school' => 'max:255|nullable',
             'last_school_year' => 'max:255|nullable',
-            'profile' => '',
-            'signature' => 'nullable|string',
+            // 'profile' => '',
+            // 'signature' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -563,15 +759,10 @@ class UserController extends Controller
         }
 
         $id = $request->studid;
-        $studpersonal = StudentPersonalInfo::find($id);
-        // $studpersonal = DB::table('students_personal_information')->where('id', $id)->first();
+        $studpersonal = StudentPersonalInformation::where('user_id',$id)->first();
+        // $studpersonal = DB::table('student_personal_information')->where('id', $id)->first();
 
         if ($studpersonal) {
-            $file = $request->file('profile');
-            $extenstion = $file->getClientOriginalExtension();
-            $filename = $request->unique_id . time() . '.' . $extenstion;
-            $file->move('uploads/userimages/', $filename);
-
             $studpersonal->firstname = $request->first_name;
             $studpersonal->lastname = $request->last_name;
             $studpersonal->middlename = $request->middle_name;
@@ -579,7 +770,7 @@ class UserController extends Controller
             $studpersonal->age = $request->age;
             $studpersonal->birthdate = $request->birthdate;
             $studpersonal->birth_place = $request->birth_place;
-            $studpersonal->email = $request->email;
+            // $studpersonal->email = $request->email;
             $studpersonal->mobile_number = $request->mobile_number;
             $studpersonal->gender = $request->gender;
             $studpersonal->ip = $request->ip;
@@ -598,15 +789,19 @@ class UserController extends Controller
             $studpersonal->guardian_firstName = $request->guardian_firstName;
             $studpersonal->guardian_middleName = $request->guardian_middleName;
             $studpersonal->guardian_number = $request->guardian_number;
+            // $file = $request->file('profile');
+            // $extenstion = $file->getClientOriginalExtension();
+            // $filename = $request->unique_id . time() . '.' . $extenstion;
+            // $file->move('uploads/userimages/', $filename);
 
-            $studpersonal->signature = $request->signature;
-            $studpersonal->profile_image = $filename;
+            // $studpersonal->signature = $request->signature;
+            // $studpersonal->profile_image = $filename;
             $studpersonal->update();
         } else {
             return response()->json(['message' => 'Student info not found'], 404);
         }
 
-        $educational_info = StudentEducationalInfo::find($id);
+        $educational_info = $studpersonal->educationRecord;
 
         if ($educational_info) {
             $educational_info->LRN = $request->lrn;
@@ -614,14 +809,12 @@ class UserController extends Controller
             $educational_info->elem_schoolyr = $request->elementary_yr;
             $educational_info->school_jhs = $request->jhs;
             $educational_info->jhs_schoolyr = $request->jhs_yr;
-            $educational_info->last_school = $request->last_school;
-            $educational_info->last_schoolyr = $request->last_schoolyr;
+            $educational_info->last_school = $request->lastschool;
+            $educational_info->last_schoolyr = $request->lastschool_yr;
             $educational_info->grade_level = $request->enrolling_for;
             $educational_info->school_id = $request->schoolID;
             $educational_info->lastgrade_completed = $request->lastgradecompl;
-            $educational_info->semester = $request->semester;
-            $educational_info->track = $request->track;
-            $educational_info->strand = $request->strand;
+            // $educational_info->semester = $request->semester;
             $educational_info->special_program = $request->special_program;
             $educational_info->m_tounge = $request->m_tounge;
             $educational_info->update();
@@ -631,6 +824,98 @@ class UserController extends Controller
 
         return response(['message' => 'Update Success'], 201);
     }
+
+    // public function updatestud(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'first_name' => 'max:255|nullable',
+    //         'middle_name' => 'max:255|nullable|string',
+    //         'last_name' => 'max:255|nullable',
+    //         'suffix' => 'max:255|nullable|string',
+    //         'gender' => 'max:255|nullable',
+    //         'age' => 'max:255|nullable|integer',
+    //         'lrn' => 'max:255|nullable',
+    //         'religion' => 'max:255|nullable|string',
+    //         'contact_number' => 'numeric|nullable',
+    //         'birthdate' => 'nullable|date:Y-m-d',
+    //         'birth_place' => 'max:255|nullable',
+    //         'home_address' => 'max:255|nullable',
+    //         'present_address' => 'max:255|nullable',
+    //         'elementary' => 'max:255|nullable',
+    //         'elementary_yr' => 'max:255|nullable',
+    //         'jhs' => 'max:255|nullable',
+    //         'jhs_yr' => 'max:255|nullable',
+    //         'shs_school' => 'max:255|nullable|string',
+    //         'shs_yr' => 'max:255|nullable',
+    //         'last_school' => 'max:255|nullable',
+    //         'last_school_year' => 'max:255|nullable',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response(['message' => $validator->errors()], 400);
+    //     }
+
+    //     $id = $request->studid;
+    //     $studpersonal = StudentPersonalInformation::find($id);
+
+    //     if (!$studpersonal) {
+    //         return response()->json(['message' => 'Student info not found'], 404);
+    //     }
+
+    //     // Update personal information
+    //     $studpersonal->firstname = $request->first_name ?? $studpersonal->firstname;
+    //     $studpersonal->lastname = $request->last_name ?? $studpersonal->lastname;
+    //     $studpersonal->middlename = $request->middle_name ?? $studpersonal->middlename;
+    //     $studpersonal->suffix = $request->suffix ?? $studpersonal->suffix;
+    //     $studpersonal->age = $request->age ?? $studpersonal->age;
+    //     $studpersonal->birthdate = $request->birthdate ?? $studpersonal->birthdate;
+    //     $studpersonal->birth_place = $request->birth_place ?? $studpersonal->birth_place;
+    //     $studpersonal->mobile_number = $request->contact_number ?? $studpersonal->mobile_number;
+    //     $studpersonal->gender = $request->gender ?? $studpersonal->gender;
+    //     $studpersonal->ip = $request->ip ?? $studpersonal->ip;
+    //     $studpersonal->pantawid = $request->pantawid ?? $studpersonal->pantawid;
+    //     $studpersonal->home_address = $request->home_address ?? $studpersonal->home_address;
+    //     $studpersonal->present_address = $request->present_address ?? $studpersonal->present_address;
+    //     $studpersonal->father_lastName = $request->father_lastName ?? $studpersonal->father_lastName;
+    //     $studpersonal->father_firstName = $request->father_firstName ?? $studpersonal->father_firstName;
+    //     $studpersonal->father_middleName = $request->father_middleName ?? $studpersonal->father_middleName;
+    //     $studpersonal->father_number = $request->father_number ?? $studpersonal->father_number;
+    //     $studpersonal->mother_lastName = $request->mother_lastName ?? $studpersonal->mother_lastName;
+    //     $studpersonal->mother_firstName = $request->mother_firstName ?? $studpersonal->mother_firstName;
+    //     $studpersonal->mother_middleName = $request->mother_middleName ?? $studpersonal->mother_middleName;
+    //     $studpersonal->mother_number = $request->mother_number ?? $studpersonal->mother_number;
+    //     $studpersonal->guardian_lastName = $request->guardian_lastName ?? $studpersonal->guardian_lastName;
+    //     $studpersonal->guardian_firstName = $request->guardian_firstName ?? $studpersonal->guardian_firstName;
+    //     $studpersonal->guardian_middleName = $request->guardian_middleName ?? $studpersonal->guardian_middleName;
+    //     $studpersonal->guardian_number = $request->guardian_number ?? $studpersonal->guardian_number;
+
+    //     $studpersonal->save();
+
+    //     // Update educational information
+    //     $educational_info = StudentEducationRecord::where('student_id', $id)->first();
+
+    //     if (!$educational_info) {
+    //         return response()->json(['message' => 'Educational info not found'], 404);
+    //     }
+
+    //     $educational_info->LRN = $request->lrn ?? $educational_info->LRN;
+    //     $educational_info->school_elem = $request->elementary ?? $educational_info->school_elem;
+    //     $educational_info->elem_schoolyr = $request->elementary_yr ?? $educational_info->elem_schoolyr;
+    //     $educational_info->school_jhs = $request->jhs ?? $educational_info->school_jhs;
+    //     $educational_info->jhs_schoolyr = $request->jhs_yr ?? $educational_info->jhs_schoolyr;
+    //     $educational_info->last_school = $request->last_school ?? $educational_info->last_school;
+    //     $educational_info->last_schoolyr = $request->last_school_year ?? $educational_info->last_schoolyr;
+    //     $educational_info->grade_level = $request->enrolling_for ?? $educational_info->grade_level;
+    //     $educational_info->school_id = $request->schoolID ?? $educational_info->school_id;
+    //     $educational_info->lastgrade_completed = $request->lastgradecompl ?? $educational_info->lastgrade_completed;
+    //     $educational_info->special_program = $request->special_program ?? $educational_info->special_program;
+    //     $educational_info->m_tounge = $request->m_tounge ?? $educational_info->m_tounge;
+
+    //     $educational_info->save();
+
+    //     return response()->json(['message' => 'Update Success'], 200);
+    // }
+
 
     public function logout(): Response
     {
@@ -731,23 +1016,22 @@ class UserController extends Controller
         }
     }
 
-    public function sendotp(Request $request)
-    {
+    public function sendotp(Request $request) {
 
         $email = $request->input('email');
-        $student = StudentPersonalInfo::where('email', $email)->first();
+        $student = StudentPersonalInformation::where('email', $email)->first();
         $verificationCode = str_pad(mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
 
         $start = Carbon::now('Asia/Manila');
         $expire = Carbon::parse($start)->addMinutes(5);
 
         if ($student) {
-            DB::table('pass_reset')->insert([
-                'user_id' => $student->id,
-                'email' => $email,
-                'otp' => $verificationCode,
-                'start' => $start,
-                'expire' => $expire,
+            DB::table('pass_resets')->insert([
+            'user_id' => $student->id,
+            'email' => $email,
+            'otp' => $verificationCode,
+            'start' => $start,
+            'expire' => $expire,
             ]);
 
             $mail = new PHPMailer(true);
@@ -848,20 +1132,23 @@ class UserController extends Controller
                 'message' => 'User found',
                 'data' => $student
             ], 201);
+
         } else {
 
             return response()->json([
                 'message' => 'User not found'
             ], 201);
+
         }
+
     }
 
-    public function verifyotp(Request $request)
+    public function verifyotp (Request $request)
     {
 
         $otpcode = $request->input('otpcode');
 
-        $check = DB::table('pass_reset')->select('*')
+        $check = DB::table('pass_resets')->select('*')
             ->where('otp', $otpcode)
             ->first();
 
@@ -875,8 +1162,8 @@ class UserController extends Controller
     public function resetPassword(Request $request)
     {
 
-        $resetData = DB::table('pass_reset')
-            ->join('users', 'pass_reset.user_id', '=', 'users.id')
+        $resetData = DB::table('pass_resets')
+            ->join('users', 'pass_resets.user_id', '=', 'users.id')
             ->where('otp', $request->checkcode)
             ->first();
 
@@ -893,4 +1180,5 @@ class UserController extends Controller
             return response()->json(['status' => 'Failed to reset password'], 500);
         }
     }
+
 }
