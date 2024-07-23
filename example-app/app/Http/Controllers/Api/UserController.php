@@ -258,7 +258,7 @@ class UserController extends Controller
             $educational_info->account_status = 'pending';
             $educational_info->save();
 
-                        // Create StudentEnrollment
+            // Create StudentEnrollment
             $enrollment = new StudentEnrollment();
             $enrollment->student_id = $student_personal_info->id;
             $enrollment->year_level = $request->gradelevel;
@@ -762,6 +762,7 @@ class UserController extends Controller
             return Response(['message' => $validator->errors()], 201);
         }
 
+
         // Update user email
         $userInfo = User::findOrFail($id);
         $userInfo->email = $request->email;
@@ -850,98 +851,6 @@ class UserController extends Controller
 
         return response(['message' => 'Update Success'], 201);
     }
-
-    // public function updatestud(Request $request)
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'first_name' => 'max:255|nullable',
-    //         'middle_name' => 'max:255|nullable|string',
-    //         'last_name' => 'max:255|nullable',
-    //         'suffix' => 'max:255|nullable|string',
-    //         'gender' => 'max:255|nullable',
-    //         'age' => 'max:255|nullable|integer',
-    //         'lrn' => 'max:255|nullable',
-    //         'religion' => 'max:255|nullable|string',
-    //         'contact_number' => 'numeric|nullable',
-    //         'birthdate' => 'nullable|date:Y-m-d',
-    //         'birth_place' => 'max:255|nullable',
-    //         'home_address' => 'max:255|nullable',
-    //         'present_address' => 'max:255|nullable',
-    //         'elementary' => 'max:255|nullable',
-    //         'elementary_yr' => 'max:255|nullable',
-    //         'jhs' => 'max:255|nullable',
-    //         'jhs_yr' => 'max:255|nullable',
-    //         'shs_school' => 'max:255|nullable|string',
-    //         'shs_yr' => 'max:255|nullable',
-    //         'last_school' => 'max:255|nullable',
-    //         'last_school_year' => 'max:255|nullable',
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response(['message' => $validator->errors()], 400);
-    //     }
-
-    //     $id = $request->studid;
-    //     $studpersonal = StudentPersonalInformation::find($id);
-
-    //     if (!$studpersonal) {
-    //         return response()->json(['message' => 'Student info not found'], 404);
-    //     }
-
-    //     // Update personal information
-    //     $studpersonal->firstname = $request->first_name ?? $studpersonal->firstname;
-    //     $studpersonal->lastname = $request->last_name ?? $studpersonal->lastname;
-    //     $studpersonal->middlename = $request->middle_name ?? $studpersonal->middlename;
-    //     $studpersonal->suffix = $request->suffix ?? $studpersonal->suffix;
-    //     $studpersonal->age = $request->age ?? $studpersonal->age;
-    //     $studpersonal->birthdate = $request->birthdate ?? $studpersonal->birthdate;
-    //     $studpersonal->birth_place = $request->birth_place ?? $studpersonal->birth_place;
-    //     $studpersonal->mobile_number = $request->contact_number ?? $studpersonal->mobile_number;
-    //     $studpersonal->gender = $request->gender ?? $studpersonal->gender;
-    //     $studpersonal->ip = $request->ip ?? $studpersonal->ip;
-    //     $studpersonal->pantawid = $request->pantawid ?? $studpersonal->pantawid;
-    //     $studpersonal->home_address = $request->home_address ?? $studpersonal->home_address;
-    //     $studpersonal->present_address = $request->present_address ?? $studpersonal->present_address;
-    //     $studpersonal->father_lastName = $request->father_lastName ?? $studpersonal->father_lastName;
-    //     $studpersonal->father_firstName = $request->father_firstName ?? $studpersonal->father_firstName;
-    //     $studpersonal->father_middleName = $request->father_middleName ?? $studpersonal->father_middleName;
-    //     $studpersonal->father_number = $request->father_number ?? $studpersonal->father_number;
-    //     $studpersonal->mother_lastName = $request->mother_lastName ?? $studpersonal->mother_lastName;
-    //     $studpersonal->mother_firstName = $request->mother_firstName ?? $studpersonal->mother_firstName;
-    //     $studpersonal->mother_middleName = $request->mother_middleName ?? $studpersonal->mother_middleName;
-    //     $studpersonal->mother_number = $request->mother_number ?? $studpersonal->mother_number;
-    //     $studpersonal->guardian_lastName = $request->guardian_lastName ?? $studpersonal->guardian_lastName;
-    //     $studpersonal->guardian_firstName = $request->guardian_firstName ?? $studpersonal->guardian_firstName;
-    //     $studpersonal->guardian_middleName = $request->guardian_middleName ?? $studpersonal->guardian_middleName;
-    //     $studpersonal->guardian_number = $request->guardian_number ?? $studpersonal->guardian_number;
-
-    //     $studpersonal->save();
-
-    //     // Update educational information
-    //     $educational_info = StudentEducationRecord::where('student_id', $id)->first();
-
-    //     if (!$educational_info) {
-    //         return response()->json(['message' => 'Educational info not found'], 404);
-    //     }
-
-    //     $educational_info->LRN = $request->lrn ?? $educational_info->LRN;
-    //     $educational_info->school_elem = $request->elementary ?? $educational_info->school_elem;
-    //     $educational_info->elem_schoolyr = $request->elementary_yr ?? $educational_info->elem_schoolyr;
-    //     $educational_info->school_jhs = $request->jhs ?? $educational_info->school_jhs;
-    //     $educational_info->jhs_schoolyr = $request->jhs_yr ?? $educational_info->jhs_schoolyr;
-    //     $educational_info->last_school = $request->last_school ?? $educational_info->last_school;
-    //     $educational_info->last_schoolyr = $request->last_school_year ?? $educational_info->last_schoolyr;
-    //     $educational_info->grade_level = $request->enrolling_for ?? $educational_info->grade_level;
-    //     $educational_info->school_id = $request->schoolID ?? $educational_info->school_id;
-    //     $educational_info->lastgrade_completed = $request->lastgradecompl ?? $educational_info->lastgrade_completed;
-    //     $educational_info->special_program = $request->special_program ?? $educational_info->special_program;
-    //     $educational_info->m_tounge = $request->m_tounge ?? $educational_info->m_tounge;
-
-    //     $educational_info->save();
-
-    //     return response()->json(['message' => 'Update Success'], 200);
-    // }
-
 
     public function logout(): Response
     {
@@ -1042,7 +951,8 @@ class UserController extends Controller
         }
     }
 
-    public function sendotp(Request $request) {
+    public function sendotp(Request $request)
+    {
 
         $email = $request->input('email');
         $student = StudentPersonalInformation::where('email', $email)->first();
@@ -1053,11 +963,11 @@ class UserController extends Controller
 
         if ($student) {
             DB::table('pass_resets')->insert([
-            'user_id' => $student->id,
-            'email' => $email,
-            'otp' => $verificationCode,
-            'start' => $start,
-            'expire' => $expire,
+                'user_id' => $student->user_id,
+                'email' => $email,
+                'otp' => $verificationCode,
+                'start' => $start,
+                'expire' => $expire,
             ]);
 
             $mail = new PHPMailer(true);
@@ -1158,18 +1068,15 @@ class UserController extends Controller
                 'message' => 'User found',
                 'data' => $student
             ], 201);
-
         } else {
 
             return response()->json([
                 'message' => 'User not found'
             ], 201);
-
         }
-
     }
 
-    public function verifyotp (Request $request)
+    public function verifyotp(Request $request)
     {
 
         $otpcode = $request->input('otpcode');
@@ -1206,5 +1113,4 @@ class UserController extends Controller
             return response()->json(['status' => 'Failed to reset password'], 500);
         }
     }
-
 }
