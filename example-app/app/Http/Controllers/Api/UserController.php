@@ -778,6 +778,7 @@ class UserController extends Controller
         $studpersonal->firstname = $request->first_name;
         $studpersonal->lastname = $request->last_name;
         $studpersonal->middlename = $request->middle_name;
+        $studpersonal->civil_status = $request->civil_status;
         $studpersonal->suffix = $request->suffix;
         $studpersonal->age = $request->age;
         $studpersonal->birthdate = $request->birthdate;
@@ -803,13 +804,13 @@ class UserController extends Controller
         $studpersonal->guardian_number = $request->guardian_number;
 
         // Handle profile image upload
-    if ($request->hasFile('profile') && $request->file('profile')->isValid()) {
-        $profileImageFile = $request->file('profile');
-        $profileImageExtension = $profileImageFile->getClientOriginalExtension();
-        $profileImageName = $request->email . time() . '.' . $profileImageExtension;
-        $profileImageFile->move('uploads/userimages/', $profileImageName);
-        $studpersonal->profile_image = $profileImageName;
-    }
+        if ($request->hasFile('profile') && $request->file('profile')->isValid()) {
+            $profileImageFile = $request->file('profile');
+            $profileImageExtension = $profileImageFile->getClientOriginalExtension();
+            $profileImageName = $request->email . time() . '.' . $profileImageExtension;
+            $profileImageFile->move('uploads/userimages/', $profileImageName);
+            $studpersonal->profile_image = $profileImageName;
+        }
 
         // Handle signature update if needed
         if ($request->has('signature')) {
@@ -830,11 +831,13 @@ class UserController extends Controller
         $educational_info->elem_schoolyr = $request->elementary_yr;
         $educational_info->school_jhs = $request->jhs;
         $educational_info->jhs_schoolyr = $request->jhs_yr;
-        $educational_info->last_school = $request->lastschool;
-        $educational_info->last_schoolyr = $request->lastschool_yr;
+        $educational_info->last_school = $request->last_school;
+        $educational_info->last_schoolyr = $request->last_schoolyr;
         $educational_info->grade_level = $request->enrolling_for;
         $educational_info->school_id = $request->schoolID;
         $educational_info->lastgrade_completed = $request->lastgradecompl;
+        $educational_info->semester = $request->semester;
+        $educational_info->track = $request->track;
         $educational_info->special_program = $request->special_program;
         $educational_info->m_tounge = $request->m_tounge;
 
