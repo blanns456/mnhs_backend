@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use Carbon\Carbon;
+use App\Rules\EmailRule;
 
 class UserController extends Controller
 {
@@ -725,7 +726,9 @@ class UserController extends Controller
 
     public function updatestud(Request $request)
     {
-        // dd($request);
+        $id = $request->studid;
+        $studpersonal = StudentPersonalInformation::where('user_id', $id)->first();
+        $educational_info_id = $studpersonal->educationRecord()->value('id');
 
         $validator = Validator::make($request->all(), [
             'first_name' => 'max:255|nullable',
@@ -734,10 +737,10 @@ class UserController extends Controller
             'suffix' => 'max:255|nullable|string',
             'gender' => 'max:255|nullable',
             'age' => 'max:255|nullable',
-            'lrn' => 'max:255|nullable',
+            'lrn' => 'max:255|nullable|unique:student_education_records,lrn,' . $educational_info_id,
             'religion' => 'max:255|nullable|string',
             'contact_number' => 'numeric|max:255',
-            // 'email' => 'max:255|nullable',
+            'email' => ['required', new EmailRule($educational_info_id)],
             'birthdate' => 'nullable|date:Y-m-d',
             'birth_place' => 'max:255|nullable',
             'home_address' => 'max:255|nullable',
@@ -750,78 +753,101 @@ class UserController extends Controller
             'shs_yr' => 'max:255|nullable',
             'last_school' => 'max:255|nullable',
             'last_school_year' => 'max:255|nullable',
-            // 'profile' => '',
-            // 'signature' => 'nullable|string',
+            'profile' => 'nullable',
+            'form_137' => 'nullable',
+            'signature' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return Response(['message' => $validator->errors()], 201);
         }
 
-        $id = $request->studid;
-        $studpersonal = StudentPersonalInformation::where('user_id', $id)->first();
-        // $studpersonal = DB::table('student_personal_information')->where('id', $id)->first();
 
-        if ($studpersonal) {
-            $studpersonal->firstname = $request->first_name;
-            $studpersonal->lastname = $request->last_name;
-            $studpersonal->middlename = $request->middle_name;
-            $studpersonal->civil_status = $request->civil_status;
-            $studpersonal->suffix = $request->suffix;
-            $studpersonal->age = $request->age;
-            $studpersonal->birthdate = $request->birthdate;
-            $studpersonal->birth_place = $request->birth_place;
-            // $studpersonal->email = $request->email;
-            $studpersonal->mobile_number = $request->mobile_number;
-            $studpersonal->gender = $request->gender;
-            $studpersonal->ip = $request->ip;
-            $studpersonal->pantawid = $request->pantawid;
-            $studpersonal->home_address = $request->home_address;
-            $studpersonal->present_address = $request->present_address;
-            $studpersonal->father_lastName = $request->father_lastName;
-            $studpersonal->father_firstName = $request->father_firstName;
-            $studpersonal->father_middleName = $request->father_middleName;
-            $studpersonal->father_number = $request->father_number;
-            $studpersonal->mother_lastName = $request->mother_lastName;
-            $studpersonal->mother_firstName = $request->mother_firstName;
-            $studpersonal->mother_middleName = $request->mother_middleName;
-            $studpersonal->mother_number = $request->mother_number;
-            $studpersonal->guardian_lastName = $request->guardian_lastName;
-            $studpersonal->guardian_firstName = $request->guardian_firstName;
-            $studpersonal->guardian_middleName = $request->guardian_middleName;
-            $studpersonal->guardian_number = $request->guardian_number;
-            // $file = $request->file('profile');
-            // $extenstion = $file->getClientOriginalExtension();
-            // $filename = $request->unique_id . time() . '.' . $extenstion;
-            // $file->move('uploads/userimages/', $filename);
+        // Update user email
+        $userInfo = User::findOrFail($id);
+        $userInfo->email = $request->email;
+        $userInfo->update();
 
-            // $studpersonal->signature = $request->signature;
-            // $studpersonal->profile_image = $filename;
-            $studpersonal->update();
-        } else {
+        // Fetch student personal information
+
+        if (!$studpersonal) {
             return response()->json(['message' => 'Student info not found'], 404);
         }
 
-        $educational_info = $studpersonal->educationRecord;
+        // Update personal information
+        $studpersonal->firstname = $request->first_name;
+        $studpersonal->lastname = $request->last_name;
+        $studpersonal->middlename = $request->middle_name;
+        $studpersonal->suffix = $request->suffix;
+        $studpersonal->age = $request->age;
+        $studpersonal->birthdate = $request->birthdate;
+        $studpersonal->birth_place = $request->birth_place;
+        $studpersonal->email = $request->email;
+        $studpersonal->mobile_number = $request->mobile_number;
+        $studpersonal->gender = $request->gender;
+        $studpersonal->ip = $request->ip;
+        $studpersonal->pantawid = $request->pantawid;
+        $studpersonal->home_address = $request->home_address;
+        $studpersonal->present_address = $request->present_address;
+        $studpersonal->father_lastName = $request->father_lastName;
+        $studpersonal->father_firstName = $request->father_firstName;
+        $studpersonal->father_middleName = $request->father_middleName;
+        $studpersonal->father_number = $request->father_number;
+        $studpersonal->mother_lastName = $request->mother_lastName;
+        $studpersonal->mother_firstName = $request->mother_firstName;
+        $studpersonal->mother_middleName = $request->mother_middleName;
+        $studpersonal->mother_number = $request->mother_number;
+        $studpersonal->guardian_lastName = $request->guardian_lastName;
+        $studpersonal->guardian_firstName = $request->guardian_firstName;
+        $studpersonal->guardian_middleName = $request->guardian_middleName;
+        $studpersonal->guardian_number = $request->guardian_number;
 
-        if ($educational_info) {
-            $educational_info->LRN = $request->lrn;
-            $educational_info->school_elem = $request->elementary;
-            $educational_info->elem_schoolyr = $request->elementary_yr;
-            $educational_info->school_jhs = $request->jhs;
-            $educational_info->jhs_schoolyr = $request->jhs_yr;
-            $educational_info->last_school = $request->last_school;
-            $educational_info->last_schoolyr = $request->last_schoolyr;
-            $educational_info->grade_level = $request->enrolling_for;
-            $educational_info->school_id = $request->schoolID;
-            $educational_info->lastgrade_completed = $request->lastgradecompl;
-            // $educational_info->semester = $request->semester;
-            $educational_info->special_program = $request->special_program;
-            $educational_info->m_tounge = $request->m_tounge;
-            $educational_info->update();
-        } else {
+        // Handle profile image upload
+    if ($request->hasFile('profile') && $request->file('profile')->isValid()) {
+        $profileImageFile = $request->file('profile');
+        $profileImageExtension = $profileImageFile->getClientOriginalExtension();
+        $profileImageName = $request->email . time() . '.' . $profileImageExtension;
+        $profileImageFile->move('uploads/userimages/', $profileImageName);
+        $studpersonal->profile_image = $profileImageName;
+    }
+
+        // Handle signature update if needed
+        if ($request->has('signature')) {
+            $studpersonal->signature = $request->signature;
+        }
+
+        $studpersonal->update();
+
+        // Fetch educational information
+        $educational_info = $studpersonal->educationRecord;
+        if (!$educational_info) {
             return response()->json(['message' => 'Educational info not found'], 404);
         }
+
+        // Update educational information
+        $educational_info->LRN = $request->lrn;
+        $educational_info->school_elem = $request->elementary;
+        $educational_info->elem_schoolyr = $request->elementary_yr;
+        $educational_info->school_jhs = $request->jhs;
+        $educational_info->jhs_schoolyr = $request->jhs_yr;
+        $educational_info->last_school = $request->lastschool;
+        $educational_info->last_schoolyr = $request->lastschool_yr;
+        $educational_info->grade_level = $request->enrolling_for;
+        $educational_info->school_id = $request->schoolID;
+        $educational_info->lastgrade_completed = $request->lastgradecompl;
+        $educational_info->special_program = $request->special_program;
+        $educational_info->m_tounge = $request->m_tounge;
+
+        // Handle form 137 upload
+        if ($request->hasFile('form_137') && $request->file('form_137')->isValid()) {
+            $form137File = $request->file('form_137');
+            $form137Extension = $form137File->getClientOriginalExtension();
+            $form137Name = $request->email . '_form137_' . time() . '.' . $form137Extension;
+            $form137File->move('uploads/form137/', $form137Name);
+            $educational_info->form_137 = $form137Name;
+        }
+
+        $educational_info->update();
 
         return response(['message' => 'Update Success'], 201);
     }
