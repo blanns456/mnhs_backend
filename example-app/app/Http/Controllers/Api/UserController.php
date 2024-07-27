@@ -690,7 +690,7 @@ class UserController extends Controller
     public function pendingstudent()
     {
 
-        $pending = DB::select("SELECT student_personal_information.id as studid, CONCAT(firstname, ' ', lastname) as studname, student_education_records.grade_level as gradelevel, student_education_records.LRN as LRN, student_education_records.account_status as status FROM `users` JOIN student_personal_information ON users.email = student_personal_information.email JOIN student_education_records ON student_personal_information.id = student_education_records.student_id WHERE student_education_records.account_status = 'pending' and users.role_id = '2'");
+        $pending = DB::select("SELECT student_personal_information.id as studid, CONCAT(firstname, ' ', lastname) as studname, student_education_records.grade_level as gradelevel, student_education_records.LRN as LRN, student_education_records.account_status as acc_status, student_education_records.status FROM `users` JOIN student_personal_information ON users.email = student_personal_information.email JOIN student_education_records ON student_personal_information.id = student_education_records.student_id WHERE student_education_records.account_status = 'pending' and users.role_id = '2'");
 
         return response($pending, 201);
     }
